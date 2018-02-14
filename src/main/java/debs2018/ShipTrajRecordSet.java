@@ -1,4 +1,4 @@
-package debs;
+package debs2018;
 
 import java.util.Iterator;
 import java.util.List;
@@ -97,14 +97,13 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 	private Option<Iterator<Sample>> findNextTrajectory() {
 		while ( m_input.next(m_inputRecord) ) {
 			Trajectory trj = (Trajectory)m_inputRecord.get("trajectory");
-			Tuple2<String,Double> t = findClosestPort(trj.getEndPoint(), m_ports);
+			Tuple2<Port,Double> t = findClosestPort(trj.getEndPoint(), m_ports);
 			
-			double distKm = t._2 / 1000;
-			if ( Double.compare(distKm, 15) <= 0 ) {
+			if ( Double.compare(t._2, t._1.m_radius) <= 0 ) {
 				m_trjId = UUID.randomUUID().toString();
 				m_shipId = m_inputRecord.getString("ship_id");
 				m_departPort = m_inputRecord.getString("depart_port");
-				m_destPort = t._1;
+				m_destPort = t._1.m_name;
 				
 				return Option.some(trj.getSampleAll().iterator());
 			}
@@ -117,14 +116,15 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 		DataSet ports = marmot.getDataSet(PORTS);
 		try ( RecordSet rset = ports.read() ) {
 			return rset.fstream()
-						.map(r -> new Port(r.getString(1), (Point)r.getGeometry(0)))
+						.map(r -> new Port(r.getString(1), (Point)r.getGeometry(0),
+											r.getDouble(2)))
 						.toList();
 		}
 	}
 	
-	private Tuple2<String,Double> findClosestPort(Point loc, List<Port> ports) {
+	private Tuple2<Port,Double> findClosestPort(Point loc, List<Port> ports) {
 		return FStream.of(ports)
-					.map(p -> Tuple.of(p.m_name, calcDistance(loc, p.m_loc)))
+					.map(p -> Tuple.of(p, calcDistance(loc, p.m_loc)))
 					.max((t1,t2) -> Double.compare(t2._2, t1._2))
 					.get();
 	}
@@ -138,10 +138,12 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 	private static class Port {
 		private String m_name;
 		private Point m_loc;
+		private double m_radius;
 		
-		Port(String name, Point loc) {
+		Port(String name, Point loc, double radius) {
 			m_name = name;
 			m_loc = loc;
+			m_radius = radius;
 		}
 		
 		public static Port fromString(String str) {
@@ -149,12 +151,14 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 			
 			double x = Double.parseDouble(parts[1]);
 			double y = Double.parseDouble(parts[2]);
-			return new Port(parts[0], GeoClientUtils.toPoint(x, y));
+			double radius = Double.parseDouble(parts[3]);
+			return new Port(parts[0], GeoClientUtils.toPoint(x, y), radius);
 		}
 		
 		@Override
 		public String toString() {
-			return String.format("%s:%f:%f", m_name, m_loc.getX(), m_loc.getY());
+			return String.format("%s:%f:%f:%f)",
+								m_name, m_loc.getX(), m_loc.getY(), m_radius);
 		}
 	}
 }

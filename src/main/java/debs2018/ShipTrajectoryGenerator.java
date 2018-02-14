@@ -1,4 +1,4 @@
-package debs;
+package debs2018;
 
 import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
@@ -14,7 +14,6 @@ import marmot.Record;
 import marmot.RecordSchema;
 import marmot.RecordSet;
 import marmot.RecordSetException;
-import marmot.mapreduce.support.MarmotMRContexts;
 import marmot.optor.Sort;
 import marmot.optor.rset.SingleInputRecordSet;
 import marmot.optor.support.AbstractRecordSetFunction;
@@ -26,7 +25,8 @@ import marmot.type.Trajectory.Sample;
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class ShipTrajectoryGenerator extends AbstractRecordSetFunction implements Serializable {
+public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
+									implements Serializable {
 	private static final long serialVersionUID = 3136715462538083686L;
 	private static final Logger s_logger = LoggerFactory.getLogger(ShipTrajectoryGenerator.class);
 	
