@@ -1,24 +1,17 @@
 package debs2018;
 
-import static marmot.optor.AggregateFunction.MBR;
-import static marmot.optor.AggregateFunction.SUM;
-
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import com.vividsolutions.jts.geom.Envelope;
-
 import marmot.DataSet;
-import marmot.MarmotRuntime;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordSet;
-import marmot.geo.GeoClientUtils;
+import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
-import utils.Size2d;
 import utils.StopWatch;
 
 /**
@@ -35,45 +28,35 @@ public class AssignGridCell implements Runnable {
 	@Override
 	public void run() {
 		try {
-			Envelope bounds = bindBorder(m_marmot, Globals.SHIP_TRACKS_REFINED);
-			Size2d cellSize = GeoClientUtils.size(bounds).divideBy(Globals.RESOLUTION);
+			DataSet input = m_marmot.getDataSet(Globals.SHIP_TRACKS);
+			String geomCol = input.getGeometryColumn();
+			String srid = input.getSRID();
 			
-			Plan plan = m_marmot.planBuilder("assign_fishnet_gridcell")
-								.load(Globals.SHIP_TRACKS_REFINED)
-								.assignSquareGridCell("the_geom", bounds, cellSize)
-								.expand("count:int", "count = 1")
-								.groupBy("cell_id,depart_port,dest_port")
-									.taggedKeyColumns("cell_geom,cell_pos")
-									.workerCount(11)
-									.aggregate(SUM("count").as("count"))
-								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
-								.project("x,y,depart_port,dest_port,count")
-								.store(Globals.SHIP_GRID_CELLS)
+			String prjExpr = String.format("%s,ship_id,departure_port_name as depart_port,ts", geomCol);
+			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
+			String expr = "ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pattern))";
+			
+			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
+			
+			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
+								.load(Globals.SHIP_TRACKS)
+								.expand("ts:long", initExpr, expr)
+								.project(prjExpr)
+								.groupBy("depart_port,ship_id")
+										.run(PBUtils.serializeJava(trjGen))
+								.store(Globals.TEMP_SHIP_TRJ)
 								.build();
-			DataSet result = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
+			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ, plan, true);
 			
-			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
-			SampleUtils.printPrefix(result, 5);
+			RecordSet output = new ShipTrajRecordSet(m_marmot, result.read());
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_REFINED, geomCol, srid, output, true);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
 			return;
 		}
-	}
-	
-	private static final Envelope bindBorder(MarmotRuntime marmot, String trjDs) {
-		Plan plan;
-		plan = marmot.planBuilder("find_mbr")
-						.load(trjDs)
-						.aggregate(MBR("the_geom").as("the_geom"))
-						.store("tmp/ship_mbr")
-						.build();
-		DataSet result = marmot.createDataSet("tmp/ship_mbr", plan, true);
-		try ( RecordSet rset = result.read() ) {
-			return (Envelope)rset.fstream()
-								.first()
-								.map(r -> r.get(0))
-								.getOrNull();
+		finally {
+			m_marmot.deleteDataSet(Globals.TEMP_SHIP_TRJ);
 		}
 	}
 	

@@ -34,9 +34,8 @@ public class ExportGridCellAsCsv implements Runnable {
 	@Override
 	public void run() {
 		try {
-			DataSet tracks = m_marmot.getDataSet(Globals.SHIP_TRACKS_REFINED);
 			try ( PrintWriter pw = new PrintWriter(new FileWriter("gridcell.info")) ) {
-				Envelope bounds = tracks.getBounds();
+				Envelope bounds = Globals.BOUNDS;
 				pw.printf("grid-bounds: %f %f %f %f%n", bounds.getMinX(), bounds.getMaxX(),
 												bounds.getMinY(), bounds.getMaxY());
 				pw.printf("grid-dimension: %s", Globals.RESOLUTION);

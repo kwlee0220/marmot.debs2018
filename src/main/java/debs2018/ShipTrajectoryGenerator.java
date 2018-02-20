@@ -1,6 +1,7 @@
 package debs2018;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.geotools.referencing.GeodeticCalculator;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import com.vividsolutions.jts.geom.Point;
 
+import io.vavr.control.Option;
 import marmot.MarmotRuntime;
 import marmot.Record;
 import marmot.RecordSchema;
@@ -17,6 +19,8 @@ import marmot.RecordSetException;
 import marmot.optor.Sort;
 import marmot.optor.rset.SingleInputRecordSet;
 import marmot.optor.support.AbstractRecordSetFunction;
+import marmot.rset.PeekableRecordSet;
+import marmot.rset.RecordSets;
 import marmot.type.DataType;
 import marmot.type.Trajectory;
 import marmot.type.Trajectory.Sample;
@@ -33,6 +37,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 	private static final RecordSchema SCHEMA
 							= RecordSchema.builder()
 											.addColumn("trajectory", DataType.TRAJECTORY)
+											.addColumn("dest_port", DataType.STRING)
 											.build();
 	
 	@Override
@@ -51,62 +56,79 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		return new Created(this, input);
 	}
 
-	private static final long MAX_DELAY = TimeUnit.HOURS.toMillis(1);	// 1 hour
-	private static final double MAX_VALID_DISTANCE = 3_600;	// 60km/h
-	private static final long MILLIS_PER_MIN = TimeUnit.MINUTES.toMillis(1);
-	private static final long MIN_NAVI_DURATION = TimeUnit.HOURS.toMillis(3);
+	private static final double MAX_VALID_DISTANCE = 100;			// 100 nmile
+	private static final double MAX_VALID_SPEED = 50;				// 50 kt
+	private static final long MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
+	
 	private static class Created extends SingleInputRecordSet<ShipTrajectoryGenerator> {
 		private final Record m_inputRecord;
 		private Sample m_lastSample;
-		
+
 		private final GeodeticCalculator m_gc = new GeodeticCalculator();
+		private Trajectory.Builder m_builder = Trajectory.builder();
 		
 		Created(ShipTrajectoryGenerator gen, RecordSet input) {
-			super(gen, input);
+			super(gen, RecordSets.toPeekable(input));
 			
 			m_inputRecord = newInputRecord();
+			if ( m_input.next(m_inputRecord) ) {
+				m_lastSample = toSample(m_inputRecord);
+				m_builder.add(m_lastSample);
+			}
+			
 		}
 
 		@Override
 		public boolean next(Record record) throws RecordSetException {
-			Trajectory.Builder builder = Trajectory.builder();
-			
-			if ( m_lastSample == null ) {
-				if ( !m_input.next(m_inputRecord) ) {
-					return false;
-				}
-				
-				m_lastSample = toSample(m_inputRecord);
-				
-			}
-			builder.add(m_lastSample);
-			
 			Sample sample = null;
 			while ( true ) {
 				boolean eor;
 				while ( !(eor = !m_input.next(m_inputRecord)) ) {
 					sample = toSample(m_inputRecord);
 					
-					long timeGap = sample.getMillis() - m_lastSample.getMillis();
-					if ( timeGap > MAX_DELAY ) {
+					Duration interval = Duration.ofMillis(sample.getMillis() - m_lastSample.getMillis());
+					if ( interval.isZero() ) {
+						s_logger.debug("skip same timestamp: ts={}", sample.getMillis());
+						continue;
+					}
+
+					double dist = calcDistance(m_lastSample.getPoint(), sample.getPoint()) / 1_852;
+					double speed = (dist / interval.toMillis()) * MILLIS_PER_HOUR;
+
+					if ( speed > MAX_VALID_SPEED && dist > MAX_VALID_DISTANCE ) {
+						Option<Record> orec = ((PeekableRecordSet)m_input).peek();
+						if ( orec.isDefined() ) {
+							Sample next = toSample(orec.get());
+							double dist2 = calcDistance(m_lastSample.getPoint(), next.getPoint()) / 1_852;
+							if ( dist2/2 < dist ) {
+								double dist3 = calcDistance(sample.getPoint(), next.getPoint()) / 1_852;
+								s_logger.info(String.format("drop spike track: %.1f-%.1f vs. %.1f",
+															dist, dist3, dist2));
+								
+								continue;
+							}
+						}
+						s_logger.info(String.format("break into a trajectory: "
+												+ "speed=%.2fkt dist=%.2fnmile interval=%s%n",
+												speed, dist, interval));
 						break;
 					}
 					
-					double distPerMin = calcDistancePerMinute(m_lastSample, sample, timeGap);
-					if ( distPerMin <= MAX_VALID_DISTANCE ) {
-						builder.add(sample);
-						m_lastSample = sample;
-					}
+					m_builder.add(sample);
+					m_lastSample = sample;
 				}
 				m_lastSample = sample;
 				
-				Trajectory trj = builder.build();
-				if ( trj.getDuration().getMillis() >= MIN_NAVI_DURATION ) {
-					record.set(0, trj);
-					return true;
-				}
-				if ( eor ) {
+				if ( eor && m_builder.length() == 0 ) {
 					return false;
+				}
+				if ( m_builder.length() > 0 ) {
+					Trajectory traj = m_builder.build();
+					m_builder.clear();
+					
+					record.set(0, traj);
+					
+					return true;
 				}
 			}
 		}
@@ -118,13 +140,10 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 			return new Sample(pt, ts);
 		}
 		
-		private double calcDistancePerMinute(Sample sample1, Sample sample2, long gap) {
-			Point src = sample1.getPoint();
-			Point tar = sample2.getPoint();
-			m_gc.setStartingGeographicPoint(src.getX(), src.getY());
-			m_gc.setDestinationGeographicPoint(tar.getX(), tar.getY());
-			return m_gc.getOrthodromicDistance() / gap * MILLIS_PER_MIN;
+		private double calcDistance(Point pt1, Point pt2) {
+			m_gc.setStartingGeographicPoint(pt1.getX(), pt1.getY());
+			m_gc.setDestinationGeographicPoint(pt2.getX(), pt2.getY());
+			return m_gc.getOrthodromicDistance();
 		}
 	}
-
 }
