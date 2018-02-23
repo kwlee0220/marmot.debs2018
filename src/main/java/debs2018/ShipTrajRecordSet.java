@@ -158,7 +158,7 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 				.read()
 				.fstream()
 				.map(Port::fromRecord)
-				.toList();
+				.toArrayList();
 	}
 	
 	private Option<Port> findClosestPort(Point pt) {
