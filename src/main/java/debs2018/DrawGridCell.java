@@ -38,7 +38,7 @@ public class DrawGridCell implements Runnable {
 			DataSet result = m_marmot.createDataSet("tmp/result", geomCol, srid, plan, true);
 			
 			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
-			SampleUtils.printPrefix(result, 5);
+			DebsUtils.printPrefix(result, 5);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

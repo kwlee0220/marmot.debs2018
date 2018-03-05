@@ -42,8 +42,9 @@ public class AssignGridCell implements Runnable {
 								.load(Globals.SHIP_TRACKS)
 								.expand("ts:long", initExpr, expr)
 								.project(prjExpr)
-								.groupBy("depart_port,ship_id")
-										.run(PBUtils.serializeJava(trjGen))
+								.groupBy("ship_id")
+										.orderBy("ts:A")
+										.transform(PBUtils.serializeJava(trjGen))
 								.store(Globals.TEMP_SHIP_TRJ)
 								.build();
 			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ, plan, true);

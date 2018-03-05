@@ -5,7 +5,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-import org.geotools.referencing.GeodeticCalculator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,6 @@ import marmot.support.DefaultRecord;
 import marmot.type.DataType;
 import marmot.type.Trajectory;
 import marmot.type.Trajectory.Sample;
-import utils.stream.FStream;
 
 /**
  * 
@@ -36,9 +34,8 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 	private static final Logger s_logger = LoggerFactory.getLogger(ShipTrajRecordSet.class);
 	
 	private final RecordSet m_input;
-	private final List<Port> m_ports;
+	private final Ports m_ports;
 	private final Record m_inputRecord;
-	private final GeodeticCalculator m_gc = new GeodeticCalculator();
 	private final SquareGridCellAssigner m_assigner;
 	
 	private String m_shipId;
@@ -60,7 +57,7 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 	
 	public ShipTrajRecordSet(MarmotServer marmot, RecordSet input) {
 		m_input = input;
-		m_ports = loadPorts(marmot);
+		m_ports = Ports.load(marmot);
 		m_inputRecord = DefaultRecord.of(input.getRecordSchema());
 		
 		m_assigner = new SquareGridCellAssigner(Globals.BOUNDS, Globals.RESOLUTION);
@@ -108,7 +105,7 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 	private Option<Iterator<Tuple2<Sample,Assignment>>> findNextTrajectory() {
 		while ( m_input.next(m_inputRecord) ) {
 			Trajectory traj = (Trajectory)m_inputRecord.get("trajectory");
-			Option<Port> destPort = findClosestPort(traj.getEndPoint());
+			Option<Port> destPort = m_ports.findNearestValidPort(traj.getEndPoint());
 			
 			if ( destPort.isDefined() ) {
 				m_trjId = UUID.randomUUID().toString();
@@ -129,13 +126,10 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 				if ( s_logger.isInfoEnabled() ) {
 					Point pt = traj.getEndPoint();
 					
-					Tuple2<Port,Double> closest = FStream.of(m_ports)
-						.map(port -> Tuple.of(port, calcDistance(pt, port.m_loc)-port.m_radius))
-						.min(t -> t._2)
-						.get();
+					Tuple2<Port,Double> nearest = m_ports.findNearestPort(pt);
 					s_logger.info(String.format("fails to find the right port: "
 												+ "closest=%s (delta=%.1fkm): %s:%s(%d)",
-												closest._1.m_name, closest._2 / 1000,
+												nearest._1.m_name, nearest._2 / 1000,
 												m_shipId, m_departPort, traj.getSampleCount()));
 				}
 			}
@@ -151,51 +145,5 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 				.distinctUntilChanged(t -> t._2.getCellId())
 				.toList()
 				.blockingGet();
-	}
-	
-	private static List<Port> loadPorts(MarmotServer marmot) {
-		return marmot.getDataSet(Globals.PORTS)
-				.read()
-				.fstream()
-				.map(Port::fromRecord)
-				.toArrayList();
-	}
-	
-	private Option<Port> findClosestPort(Point pt) {
-		return FStream.of(m_ports)
-					.map(port -> Tuple.of(port, calcDistance(pt, port.m_loc)))
-					.filter(t -> Double.compare(t._2, t._1.m_radius) <= 0)
-					.min(t -> t._2)
-					.map(t -> t._1);
-	}
-	
-	private double calcDistance(Point pt1, Point pt2) {
-		m_gc.setStartingGeographicPoint(pt1.getX(), pt1.getY());
-		m_gc.setDestinationGeographicPoint(pt2.getX(), pt2.getY());
-		return m_gc.getOrthodromicDistance();
-	}
-	
-	private static class Port {
-		private String m_name;
-		private Point m_loc;
-		private double m_radius;
-		
-		Port(String name, Point loc, double radius) {
-			m_name = name;
-			m_loc = loc;
-			m_radius = radius;
-		}
-		
-		@Override
-		public String toString() {
-			return String.format("%s:%f:%f:%f)",
-								m_name, m_loc.getX(), m_loc.getY(), m_radius);
-		}
-		
-		private static Port fromRecord(Record record) {
-			return new Port(record.getString("port_name"),
-							(Point)record.getGeometry("the_geom"),
-							record.getDouble("radius", -1));
-		}
 	}
 }

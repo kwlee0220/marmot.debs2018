@@ -1,15 +1,22 @@
 package debs2018;
 
-import static marmot.optor.AggregateFunction.SUM;
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import com.vividsolutions.jts.geom.Envelope;
+
+import marmot.Column;
 import marmot.DataSet;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.RecordSet;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -18,31 +25,38 @@ import utils.StopWatch;
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class BuildHistogram implements Runnable {
+public class ExportDestPortCsv implements Runnable {
 	private final MarmotServer m_marmot;
 	
-	private BuildHistogram(MarmotServer marmot) {
+	private ExportDestPortCsv(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			Plan plan = m_marmot.planBuilder("build_histogram")
-								.load(Globals.SHIP_TRACKS_REFINED)
-								.expand("count:int", "count = 1")
-								.groupBy("cell_id,depart_port,dest_port")
-									.taggedKeyColumns("cell_pos")
-									.workerCount(11)
-									.aggregate(SUM("count").as("count"))
-								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
-								.project("x,y,depart_port,dest_port,count")
-								.store(Globals.SHIP_GRID_CELLS)
-								.build();
-			DataSet result = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
-			
-			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
-			DebsUtils.printPrefix(result, 5);
+			Plan plan;
+			plan = m_marmot.planBuilder("export_csv")
+							.load(Globals.SHIP_TRACKS_REFINED)
+							.distinct("ship_id,depart_port,dest_port")
+							.project("ship_id,depart_port,dest_port")
+							.store("tmp/result")
+							.build();
+			DataSet result = m_marmot.createDataSet("tmp/result", plan, true);
+			try ( RecordSet rset = result.read();
+				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
+				String header = rset.getRecordSchema()
+									.columnFStream()
+									.map(Column::getName)
+									.join(",", "#", "");
+				pw.println(header);
+				
+				rset.stream()
+					.map(rec -> Arrays.stream(rec.getAll())
+										.map(Object::toString)
+										.collect(Collectors.joining(",")))
+					.forEach(pw::println);
+			}
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
@@ -64,7 +78,7 @@ public class BuildHistogram implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new BuildHistogram(marmot).run();
+			new ExportDestPortCsv(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -78,7 +92,7 @@ public class BuildHistogram implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new BuildHistogram(marmot).run();
+				new ExportDestPortCsv(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

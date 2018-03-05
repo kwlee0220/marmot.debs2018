@@ -21,7 +21,7 @@ import marmot.support.DefaultRecord;
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class SampleUtils {
+public class DebsUtils {
 	private static final File TEMP_DIR;
 	static {
 		if ( SystemUtils.IS_OS_WINDOWS ) {
