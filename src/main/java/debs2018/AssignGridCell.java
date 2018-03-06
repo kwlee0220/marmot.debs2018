@@ -45,6 +45,7 @@ public class AssignGridCell implements Runnable {
 								.groupBy("ship_id")
 										.orderBy("ts:A")
 										.transform(PBUtils.serializeJava(trjGen))
+								.expand("the_geom:line_string","the_geom = trajectory.lineString")
 								.store(Globals.TEMP_SHIP_TRJ)
 								.build();
 			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ, plan, true);
@@ -57,7 +58,7 @@ public class AssignGridCell implements Runnable {
 			return;
 		}
 		finally {
-			m_marmot.deleteDataSet(Globals.TEMP_SHIP_TRJ);
+//			m_marmot.deleteDataSet(Globals.TEMP_SHIP_TRJ);
 		}
 	}
 	

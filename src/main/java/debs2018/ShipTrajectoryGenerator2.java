@@ -2,7 +2,6 @@ package debs2018;
 
 import java.io.Serializable;
 import java.time.Duration;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -18,21 +17,22 @@ import marmot.Record;
 import marmot.RecordSchema;
 import marmot.RecordSet;
 import marmot.RecordSetException;
+import marmot.optor.rset.SingleInputRecordSet;
 import marmot.optor.support.AbstractRecordSetFunction;
-import marmot.rset.AbstractRecordSet;
+import marmot.rset.PeekableRecordSet;
+import marmot.rset.RecordSets;
 import marmot.type.DataType;
 import marmot.type.Trajectory;
 import marmot.type.Trajectory.Sample;
-import utils.stream.FStream;
 
 /**
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
+public class ShipTrajectoryGenerator2 extends AbstractRecordSetFunction
 									implements Serializable {
 	private static final long serialVersionUID = 3136715462538083686L;
-	private static final Logger s_logger = LoggerFactory.getLogger(ShipTrajectoryGenerator.class);
+	private static final Logger s_logger = LoggerFactory.getLogger(ShipTrajectoryGenerator2.class);
 	
 	private static final RecordSchema SCHEMA
 							= RecordSchema.builder()
@@ -59,85 +59,96 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 	private static final double MAX_VALID_SPEED = 50;				// 50 kt
 	private static final long MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
 	
-	private static class Created extends AbstractRecordSet {
-		private final FStream<List<ShipTrack>> m_buffereds;
-		private final Ports m_ports;
+	private static class Created extends SingleInputRecordSet<ShipTrajectoryGenerator2> {
+		private final Record m_inputRecord;
+		private ShipTrack m_lastTrack;
+
+		private Ports m_ports;
 		private final GeodeticCalculator m_gc = new GeodeticCalculator();
-		
 		private Trajectory.Builder m_builder = Trajectory.builder();
 		
-		Created(ShipTrajectoryGenerator gen, RecordSet input) {
-			m_ports = Ports.load(gen.m_marmot);
-			m_buffereds = input.fstream()
-								.map(ShipTrack::new)
-								.buffer(3, 1);
+		Created(ShipTrajectoryGenerator2 gen, RecordSet input) {
+			super(gen, RecordSets.toPeekable(input));
 			
-			Option<List<ShipTrack>> obuffer = m_buffereds.next();
-			obuffer.forEach(b -> m_builder.add(b.get(0).toSample()));
-		}
-
-		@Override
-		public RecordSchema getRecordSchema() {
-			return SCHEMA;
+			m_ports = Ports.load(gen.m_marmot);
+			
+			m_inputRecord = newInputRecord();
+			if ( m_input.next(m_inputRecord) ) {
+				m_lastTrack = new ShipTrack(m_inputRecord);
+				m_builder.add(m_lastTrack.toSample());
+			}
 		}
 
 		@Override
 		public boolean next(Record record) throws RecordSetException {
-			Option<List<ShipTrack>> obuffer;
-			String departPort = null;
+			ShipTrack track = null;
 			
 			while ( true ) {
-				while ( (obuffer = m_buffereds.next()).isDefined() ) {
-					List<ShipTrack> buffer = obuffer.get();
-					if ( buffer.size() <= 1 ) {
+				boolean eor;
+				while ( !(eor = !m_input.next(m_inputRecord)) ) {
+					track = new ShipTrack(m_inputRecord);
+					
+					if ( !track.m_departPort.equals(m_lastTrack.m_departPort) ) {
+System.out.printf("%s -> %s%n", m_lastTrack.m_departPort, track.m_departPort);
+						record.set(1, m_lastTrack.m_departPort);
 						break;
 					}
 					
-					ShipTrack t0 = buffer.get(0);
-					ShipTrack t1 = buffer.get(1);
-
-					departPort = t0.m_departPort;
-					if ( !t0.m_departPort.equals(t1.m_departPort) ) {
-						break;
-					}
-					
-					double dist01 = t1.distanceTo(t0) / 1_852;
-					Duration interval01 = interval(t0, t1);
-					double speed01 = (dist01 / interval01.toMillis()) * MILLIS_PER_HOUR;
-					
-					if ( speed01 > MAX_VALID_SPEED && dist01 > MAX_VALID_DISTANCE ) {
-						if ( buffer.size() > 2 ) {
-							ShipTrack t2 = buffer.get(2);
-							double dist12 = t1.distanceTo(t2) / 1_852;
-							double dist02 = t0.distanceTo(t2) /  1_852;
+					Duration interval = interval(m_lastTrack, track);
+					if ( interval.compareTo(MAX_VALID_DURATION) > 0 ) {
+						Option<Port> nearest = m_ports.findNearestValidPort(m_lastTrack.m_loc);
+						Option<Port> nearest2 = m_ports.findNearestValidPort(track.m_loc);
+						if ( nearest.isDefined() && nearest2.isEmpty() ) {
+							record.set(1, m_lastTrack.m_departPort);
+							break;
+						}
+						else if ( nearest.isDefined() && nearest2.isDefined()
+									&& nearest.get().equals(nearest2.get()) ) {
 							
-							if ( dist02 < dist12/2 ) {
+						}
+					}
+
+					double dist = m_lastTrack.distanceTo(track) / 1_852;
+					double speed = (dist / interval.toMillis()) * MILLIS_PER_HOUR;
+					
+					if ( speed > MAX_VALID_SPEED && dist > MAX_VALID_DISTANCE ) {
+						Option<Record> orec = ((PeekableRecordSet)m_input).peek();
+						if ( orec.isDefined() ) {
+							ShipTrack next = new ShipTrack(orec.get());
+							
+							double dist2 = m_lastTrack.distanceTo(next) /  1_852;
+							if ( dist2/2 < dist ) {
+								double dist3 = track.distanceTo(next) /  1_852;
 								s_logger.info(String.format("drop spike track: %.1f-%.1f vs. %.1f",
-															dist01, dist12, dist02));
+															dist, dist3, dist2));
 								
 								continue;
 							}
 						}
+						s_logger.info(String.format("break into a trajectory: "
+												+ "speed=%.2fkt dist=%.2fnmile interval=%s%n",
+												speed, dist, interval));
+						record.set(1, m_lastTrack.m_departPort);
+						break;
 					}
 					
-					if ( interval01.compareTo(MAX_VALID_DURATION) > 0 ) {
-						Option<Port> nearest0 = m_ports.findNearestValidPort(t0.m_loc);
-						Option<Port> nearest1 = m_ports.findNearestValidPort(t1.m_loc);
-						if ( nearest0.isDefined() && !nearest0.equals(nearest1) ) {
-							departPort = t0.m_departPort;
-							break;
-						}
-					}
-	
-					m_builder.add(t1.toSample());
+					m_builder.add(track.toSample());
+					m_lastTrack = track;
 				}
 				
 				Trajectory traj =  m_builder.length() > 0 ? m_builder.build() : null;
 				m_builder.clear();
 				
+				if ( !eor ) {
+					m_lastTrack = track;
+					m_builder.add(m_lastTrack.toSample());
+				}
+//				else {
+//					System.out.println("EOF");
+//				}
+				
 				if ( traj != null ) {
 					record.set(0, traj);
-					record.set(1, departPort);
 					
 					return true;
 				}

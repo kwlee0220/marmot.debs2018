@@ -30,7 +30,7 @@ public class Ports {
 				.read()
 				.fstream()
 				.map(Port::fromRecord)
-				.toArrayList();
+				.toList();
 		
 		return new Ports(ports);
 	}
