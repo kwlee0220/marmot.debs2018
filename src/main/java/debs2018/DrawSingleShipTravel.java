@@ -39,8 +39,8 @@ public class DrawSingleShipTravel implements Runnable {
 			
 			Plan plan = m_marmot.planBuilder("build_histogram")
 								.load(Globals.SHIP_TRACKS)
-								.filter("ship_id=='0xe472828f03b9e4cf516569db40725a615f8ac064'"
-										+ "&& departure_port_name=='VALLETTA'")
+								.filter("ship_id=='0xa3196e6e04ca25ea904135d63706b048aa47c952'"
+										+ "&& departure_port_name=='PORT SAID'")
 								.expand("ts:long", initExpr, expr)
 								.project(prjExpr)
 								.build();

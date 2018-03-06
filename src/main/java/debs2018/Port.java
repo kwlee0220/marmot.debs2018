@@ -42,8 +42,8 @@ class Port {
 	
 	@Override
 	public String toString() {
-		return String.format("%s:%f:%f:%f)",
-							m_name, m_loc.getX(), m_loc.getY(), m_radius);
+		return String.format("%s:%f:%f:%.1fkm)",
+							m_name, m_loc.getX(), m_loc.getY(), m_radius/1000);
 	}
 	
 	static Port fromRecord(Record record) {

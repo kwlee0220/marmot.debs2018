@@ -25,10 +25,10 @@ import utils.StopWatch;
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class ExportDestPortCsv implements Runnable {
+public class BuildDestinationPorts implements Runnable {
 	private final MarmotServer m_marmot;
 	
-	private ExportDestPortCsv(MarmotServer marmot) {
+	private BuildDestinationPorts(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
@@ -78,7 +78,7 @@ public class ExportDestPortCsv implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new ExportDestPortCsv(marmot).run();
+			new BuildDestinationPorts(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -92,7 +92,7 @@ public class ExportDestPortCsv implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new ExportDestPortCsv(marmot).run();
+				new BuildDestinationPorts(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

@@ -54,7 +54,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		return new Created(this, input);
 	}
 
-	private static final Duration MAX_VALID_DURATION = Duration.ofHours(10);	// 10 hours
+	private static final Duration MAX_VALID_DURATION = Duration.ofHours(2);	// 10 hours
 	private static final double MAX_VALID_DISTANCE = 100;			// 100 nmile
 	private static final double MAX_VALID_SPEED = 50;				// 50 kt
 	private static final long MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
@@ -123,7 +123,8 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 					if ( interval01.compareTo(MAX_VALID_DURATION) > 0 ) {
 						Option<Port> nearest0 = m_ports.findNearestValidPort(t0.m_loc);
 						Option<Port> nearest1 = m_ports.findNearestValidPort(t1.m_loc);
-						if ( nearest0.isDefined() && !nearest0.equals(nearest1) ) {
+						if ( nearest0.isDefined() && !nearest0.equals(nearest1)
+							&& !nearest0.get().m_name.equals(t0.m_departPort)) {
 							departPort = t0.m_departPort;
 							break;
 						}
