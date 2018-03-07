@@ -41,7 +41,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 											.build();
 	
 	@Override
-	public void initialize(MarmotRuntime marmot, RecordSchema inputSchema) {
+	public void initialize(MarmotServer marmot, RecordSchema inputSchema) {
 		setInitialized(marmot, inputSchema, SCHEMA);
 	}
 

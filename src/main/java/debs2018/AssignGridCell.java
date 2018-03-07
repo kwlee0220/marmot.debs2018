@@ -8,6 +8,7 @@ import org.apache.log4j.PropertyConfigurator;
 import marmot.DataSet;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.PlanExecutionMode;
 import marmot.RecordSet;
 import marmot.protobuf.PBUtils;
 import utils.CommandLine;
@@ -39,12 +40,13 @@ public class AssignGridCell implements Runnable {
 			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
 			
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
+								.setExecutionMode(PlanExecutionMode.MAP_REDUCE)
 								.load(Globals.SHIP_TRACKS)
 								.expand("ts:long", initExpr, expr)
 								.project(prjExpr)
 								.groupBy("ship_id")
 										.orderBy("ts:A")
-										.transform(PBUtils.serializeJava(trjGen))
+										.flatTransform(PBUtils.serializeJava(trjGen))
 								.expand("the_geom:line_string","the_geom = trajectory.lineString")
 								.store(Globals.TEMP_SHIP_TRJ)
 								.build();
