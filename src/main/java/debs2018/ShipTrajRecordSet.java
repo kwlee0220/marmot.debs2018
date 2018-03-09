@@ -77,7 +77,7 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 	
 	@Override
 	public boolean next(Record record) {
-		assertNotClosed();
+		checkNotClosed();
 		
 		while ( true ) {
 			if ( m_iter.isEmpty() ) {

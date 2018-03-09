@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import com.vividsolutions.jts.geom.Point;
 
 import io.vavr.control.Option;
-import marmot.MarmotRuntime;
+import marmot.MarmotServer;
 import marmot.Record;
 import marmot.RecordSchema;
 import marmot.RecordSet;

@@ -40,17 +40,17 @@ public class AssignGridCell implements Runnable {
 			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
 			
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
-								.setExecutionMode(PlanExecutionMode.MAP_REDUCE)
 								.load(Globals.SHIP_TRACKS)
 								.expand("ts:long", initExpr, expr)
 								.project(prjExpr)
 								.groupBy("ship_id")
 										.orderBy("ts:A")
-										.flatTransform(PBUtils.serializeJava(trjGen))
+										.apply(PBUtils.serializeJava(trjGen))
 								.expand("the_geom:line_string","the_geom = trajectory.lineString")
 								.store(Globals.TEMP_SHIP_TRJ)
 								.build();
-			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ, plan, true);
+			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ, "the_geom",
+													srid, plan, true);
 			
 			RecordSet output = new ShipTrajRecordSet(m_marmot, result.read());
 			m_marmot.createDataSet(Globals.SHIP_TRACKS_REFINED, geomCol, srid, output, true);
