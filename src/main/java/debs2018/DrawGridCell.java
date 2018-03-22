@@ -27,15 +27,14 @@ public class DrawGridCell implements Runnable {
 	public void run() {
 		try {
 			DataSet ds = m_marmot.getDataSet(Globals.SHIP_GRID_CELLS);
-			String geomCol = ds.getGeometryColumn();
-			String srid = ds.getSRID();
 			
 			Plan plan = m_marmot.planBuilder("draw_grid_cell")
 								.load(Globals.SHIP_GRID_CELLS)
 								.filter("dest_port == 'VALENCIA'")
 								.store("tmp/result")
 								.build();
-			DataSet result = m_marmot.createDataSet("tmp/result", geomCol, srid, plan, true);
+			DataSet result = m_marmot.createDataSet("tmp/result", ds.getGeometryColumnInfo(),
+													plan, true);
 			
 			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
 			DebsUtils.printPrefix(result, 5);

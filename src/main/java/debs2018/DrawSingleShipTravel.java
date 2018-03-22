@@ -30,8 +30,7 @@ public class DrawSingleShipTravel implements Runnable {
 	public void run() {
 		try {
 			DataSet input = m_marmot.getDataSet(Globals.SHIP_TRACKS);
-			String geomCol = input.getGeometryColumn();
-			String srid = input.getSRID();
+			String geomCol = input.getGeometryColumnInfo().name();
 			
 			String prjExpr = String.format("%s,ship_id,departure_port_name as depart_port,ts", geomCol);
 			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
@@ -44,8 +43,9 @@ public class DrawSingleShipTravel implements Runnable {
 								.expand("ts:long", initExpr, expr)
 								.project(prjExpr)
 								.build();
-			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip", "the_geom",
-													"EPSG:4326", plan, true);
+			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",
+													input.getGeometryColumnInfo(),
+													plan, true);
 			
 			RecordSets.observe(result.read())
 				.buffer(2,1)

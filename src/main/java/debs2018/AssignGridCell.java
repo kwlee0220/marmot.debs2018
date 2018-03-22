@@ -6,6 +6,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
 import marmot.DataSet;
+import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.PlanExecutionMode;
@@ -30,10 +31,9 @@ public class AssignGridCell implements Runnable {
 	public void run() {
 		try {
 			DataSet input = m_marmot.getDataSet(Globals.SHIP_TRACKS);
-			String geomCol = input.getGeometryColumn();
-			String srid = input.getSRID();
+			GeometryColumnInfo gcInfo = input.getGeometryColumnInfo();
 			
-			String prjExpr = String.format("%s,ship_id,departure_port_name as depart_port,ts", geomCol);
+			String prjExpr = String.format("%s,ship_id,departure_port_name as depart_port,ts", gcInfo.name());
 			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
 			String expr = "ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pattern))";
 			
@@ -49,11 +49,12 @@ public class AssignGridCell implements Runnable {
 								.expand("the_geom:line_string","the_geom = trajectory.lineString")
 								.store(Globals.TEMP_SHIP_TRJ)
 								.build();
-			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ, "the_geom",
-													srid, plan, true);
+			DataSet result = m_marmot.createDataSet(Globals.TEMP_SHIP_TRJ,
+													new GeometryColumnInfo("the_geom", gcInfo.srid()),
+													plan, true);
 			
 			RecordSet output = new ShipTrajRecordSet(m_marmot, result.read());
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_REFINED, geomCol, srid, output, true);
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_REFINED, gcInfo, output, true);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
