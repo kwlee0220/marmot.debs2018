@@ -11,3 +11,9 @@ def marmotDir = file('../..')
 	include ":$it"
 	project(":$it").projectDir = file("$marmotDir/$it")
 }
+
+def miscDir = file('../../../misc')
+['debs2018.gridcell'].each {
+	include ":$it"
+	project(":$it").projectDir = file("$miscDir/$it")
+}

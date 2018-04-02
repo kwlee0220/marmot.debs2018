@@ -24,6 +24,7 @@ repositories {
 
 dependencies {
 	compile project(':marmot')
+	compile project(':debs2018.gridcell')
 	
 	compile group: 'org.apache.activemq', name: 'activemq-client', version: '5.14.1'
 	compile group: 'com.github.davidmoten', name: 'geo', version: '0.7.4'

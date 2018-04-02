@@ -1,6 +1,6 @@
 package debs2018;
 
-import static marmot.optor.AggregateFunction.SUM;
+import static marmot.optor.AggregateFunction.COUNT;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
@@ -8,10 +8,14 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
 import marmot.DataSet;
+import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.geo.GeoClientUtils;
+import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
+import utils.Size2d;
 import utils.StopWatch;
 
 /**
@@ -28,21 +32,31 @@ public class BuildHistogram implements Runnable {
 	@Override
 	public void run() {
 		try {
-			Plan plan = m_marmot.planBuilder("build_histogram")
-								.load(Globals.SHIP_TRACKS_REFINED)
-								.expand("count:int", "count = 1")
+			String prjExpr = "the_geom,departure_port,ship_id,ship_type,"
+							+ "speed,course,heading,ts";
+			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
+			String expr = "ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pattern))";
+			Size2d cellSize = GeoClientUtils.divide(Globals.BOUNDS, Globals.RESOLUTION);
+			
+			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
+			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
+								.load(Globals.SHIP_TRACKS)
+								.expand("ts:long", initExpr, expr)
+								.project(prjExpr)
+								.groupBy("ship_id")
+									.taggedKeyColumns("ship_type")
+									.orderBy("ts:A")
+									.apply(PBUtils.serializeJava(trjGen))
+								.filter("dest_port != null")
+								.assignSquareGridCell("the_geom", Globals.BOUNDS, cellSize)
 								.groupBy("cell_id,depart_port,dest_port")
 									.taggedKeyColumns("cell_pos")
-									.workerCount(11)
-									.aggregate(SUM("count").as("count"))
+									.aggregate(COUNT().as("count"))
 								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,depart_port,dest_port,count")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			DataSet result = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
-			
-			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
-			DebsUtils.printPrefix(result, 5);
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
