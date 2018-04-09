@@ -28,7 +28,7 @@ public class DrawSingleTrajectory implements Runnable {
 	public void run() {
 		try {
 			Plan plan = m_marmot.planBuilder("build_histogram")
-								.load(Globals.SHIP_TRACKS_REFINED)
+								.load(Globals.SHIP_TRACKS_LABELED)
 								.filter("ship_id=='0xce279d9e45bfacf4b1196a470d95401026a57cf2'"
 										+ "&& depart_port=='PALMA DE MALLORCA'")
 //								.distinct("cell_id")

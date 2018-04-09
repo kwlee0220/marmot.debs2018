@@ -25,6 +25,7 @@ import marmot.support.DefaultRecord;
 import marmot.type.DataType;
 import marmot.type.Trajectory;
 import marmot.type.Trajectory.Sample;
+import plaslab.debs2018.Port;
 
 /**
  * 
@@ -111,7 +112,7 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 				m_trjId = UUID.randomUUID().toString();
 				m_shipId = m_inputRecord.getString("ship_id");
 				m_departPort = m_inputRecord.getString("depart_port");
-				m_destPort = destPort.get().m_name;
+				m_destPort = destPort.get().name();
 				
 				if ( traj.getDuration().compareTo(Duration.ofHours(1)) < 0
 					&& m_departPort.equals(m_destPort) ) {
@@ -129,7 +130,7 @@ public class ShipTrajRecordSet extends AbstractRecordSet {
 					Tuple2<Port,Double> nearest = m_ports.findNearestPort(pt);
 					s_logger.info(String.format("fails to find the right port: "
 												+ "closest=%s (delta=%.1fkm): %s:%s(%d)",
-												nearest._1.m_name, nearest._2 / 1000,
+												nearest._1.name(), nearest._2 / 1000,
 												m_shipId, m_departPort, traj.getSampleCount()));
 				}
 			}

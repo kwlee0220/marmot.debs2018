@@ -1,62 +1,51 @@
 package debs2018;
 
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import com.vividsolutions.jts.geom.Envelope;
-
-import marmot.Column;
-import marmot.DataSet;
 import marmot.MarmotServer;
 import marmot.Plan;
-import marmot.RecordSet;
+import marmot.geo.GeoClientUtils;
+import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
+import utils.Size2d;
 import utils.StopWatch;
 
 /**
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class BuildDestinationPorts implements Runnable {
+public class BuildTrajectories implements Runnable {
 	private final MarmotServer m_marmot;
 	
-	private BuildDestinationPorts(MarmotServer marmot) {
+	private BuildTrajectories(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			Plan plan;
-			plan = m_marmot.planBuilder("export_csv")
-							.load(Globals.SHIP_TRACKS_LABELED)
-							.distinct("ship_id,depart_port,dest_port")
-							.project("ship_id,depart_port,dest_port")
-							.store("tmp/result")
-							.build();
-			DataSet result = m_marmot.createDataSet("tmp/result", plan, true);
-			try ( RecordSet rset = result.read();
-				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
-				String header = rset.getRecordSchema()
-									.columnFStream()
-									.map(Column::getName)
-									.join(",", "#", "");
-				pw.println(header);
-				
-				rset.stream()
-					.map(rec -> Arrays.stream(rec.getAll())
-										.map(Object::toString)
-										.collect(Collectors.joining(",")))
-					.forEach(pw::println);
-			}
+			String prjExpr = "the_geom,departure_port,ship_id,ship_type,"
+							+ "speed,course,heading,ts";
+			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
+			String expr = "ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pattern))";
+			
+			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
+			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
+								.load(Globals.SHIP_TRACKS)
+								.expand("ts:long", initExpr, expr)
+								.project(prjExpr)
+								.groupBy("ship_id")
+									.taggedKeyColumns("ship_type")
+									.orderBy("ts:A")
+									.apply(PBUtils.serializeJava(trjGen))
+								.filter("dest_port != null")
+								.store(Globals.SHIP_TRACKS_LABELED)
+								.build();
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_LABELED, plan, true);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
@@ -78,7 +67,7 @@ public class BuildDestinationPorts implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new BuildDestinationPorts(marmot).run();
+			new BuildTrajectories(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -92,7 +81,7 @@ public class BuildDestinationPorts implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new BuildDestinationPorts(marmot).run();
+				new BuildTrajectories(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

@@ -1,17 +1,14 @@
 package debs2018;
 
 import java.io.Serializable;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Point;
 
 import io.reactivex.Observable;
-import io.vavr.control.Option;
 import marmot.MarmotServer;
 import marmot.Record;
 import marmot.RecordSchema;
@@ -36,15 +33,16 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 	private static final long serialVersionUID = 3136715462538083686L;
 	private static final Logger s_logger = LoggerFactory.getLogger(ShipTrajectoryGenerator.class);
 	
-	private Ports m_ports;
-	
 	private static final RecordSchema SCHEMA
-							= RecordSchema.builder()
-											.addColumn("the_geom", DataType.POINT)
-											.addColumn("depart_port", DataType.STRING)
-											.addColumn("dest_port", DataType.STRING)
-											.addColumn("ts", DataType.LONG)
-											.build();
+										= RecordSchema.builder()
+													.addColumn("the_geom", DataType.POINT)
+													.addColumn("traj_id", DataType.STRING)
+													.addColumn("depart_port", DataType.STRING)
+													.addColumn("arrival_port", DataType.STRING)
+													.addColumn("ts", DataType.LONG)
+													.build();
+	
+	private Ports m_ports;
 	
 	@Override
 	public void initialize(MarmotServer marmot, RecordSchema inputSchema) {
@@ -66,30 +64,37 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 											.map(r -> toShiptrack(shipId, shipType, r))
 											.observe();
 		
-		Observable<Record> refineds = ShipTrajectoryDetector.detect(shipId, tracks)
-														.flatMapIterable(this::refineTracks);
-		return RecordSets.from(SCHEMA, refineds);
+		Observable<Record> trajs = ShipTrajectoryDetector.detect(shipId, tracks)
+														.flatMap(this::tagDestPort);
+		return RecordSets.from(SCHEMA, trajs);
 	}
 	
-	private List<Record> refineTracks(ShipTrajectory shipTracks) {
-		Point2f loc = shipTracks.getLastTrack().getLocation();
+	private Observable<Record> tagDestPort(ShipTrajectory shipTraj) {
+		ShipTrack first = shipTraj.getFirstTrack();
+		String trjId = String.format("%s_%d", first.shipId(), first.timestamp() / 1000);
+		String departPort = shipTraj.getDeparturePortName();
+		Point2f loc = shipTraj.getLastTrack().location();
+		
+		return m_ports.findNearestValidPort(loc)
+						.map(destPort ->
+								Observable.fromIterable(shipTraj.getTrackAll())
+											.map(track -> toRecord(trjId, departPort,
+																	destPort.name(), track)))
+						.getOrElse(Observable.empty());
+	}
+	
+	private Record toRecord(String trajId, String departPort, String destPort, ShipTrack track) {
+		Point2f loc = track.location();
 		Point pt = GeoClientUtils.toPoint(loc.getX(), loc.getY());
-		Option<Port> destPort = m_ports.findNearestValidPort(pt);
 		
-		List<Record> records = Lists.newArrayListWithExpectedSize(shipTracks.length());
-		for ( ShipTrack track: shipTracks.getTrackAll() ) {
-			Record record = DefaultRecord.of(SCHEMA);
-			
-			loc = track.getLocation();
-			record.set("the_geom", GeoClientUtils.toPoint(loc.getX(), loc.getY()));
-			record.set("depart_port", shipTracks.getDeparturePortName());
-			destPort.forEach(port -> record.set("dest_port", port.m_name));
-			record.set("ts", track.getTimestamp());
-			
-			records.add(record);
-		}
+		Record record = DefaultRecord.of(SCHEMA);
+		record.set("the_geom", pt);
+		record.set("traj_id", trajId);
+		record.set("depart_port", departPort);
+		record.set("arrival_port", destPort);
+		record.set("ts", track.timestamp());
 		
-		return records;
+		return record;
 	}
 	
 	private ShipTrack toShiptrack(String shipId, byte shipType, Record record) {
