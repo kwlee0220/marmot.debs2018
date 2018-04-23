@@ -1,13 +1,21 @@
-package debs2018;
+package debs2018.junk;
+
+import java.io.FileWriter;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import debs2018.Globals;
+import marmot.Column;
 import marmot.DataSet;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.RecordSet;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -16,28 +24,38 @@ import utils.StopWatch;
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class DrawGridCell implements Runnable {
+public class BuildDestinationPorts implements Runnable {
 	private final MarmotServer m_marmot;
 	
-	private DrawGridCell(MarmotServer marmot) {
+	private BuildDestinationPorts(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			DataSet ds = m_marmot.getDataSet(Globals.SHIP_GRID_CELLS);
-			
-			Plan plan = m_marmot.planBuilder("draw_grid_cell")
-								.load(Globals.SHIP_GRID_CELLS)
-								.filter("dest_port == 'VALENCIA'")
-								.store("tmp/result")
-								.build();
-			DataSet result = m_marmot.createDataSet("tmp/result", ds.getGeometryColumnInfo(),
-													plan, true);
-			
-			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
-			DebsUtils.printPrefix(result, 5);
+			Plan plan;
+			plan = m_marmot.planBuilder("export_csv")
+							.load(Globals.SHIP_TRACKS_LABELED)
+							.distinct("ship_id,depart_port,dest_port")
+							.project("ship_id,depart_port,dest_port")
+							.store("tmp/result")
+							.build();
+			DataSet result = m_marmot.createDataSet("tmp/result", plan, true);
+			try ( RecordSet rset = result.read();
+				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
+				String header = rset.getRecordSchema()
+									.columnFStream()
+									.map(Column::getName)
+									.join(",", "#", "");
+				pw.println(header);
+				
+				rset.stream()
+					.map(rec -> Arrays.stream(rec.getAll())
+										.map(Object::toString)
+										.collect(Collectors.joining(",")))
+					.forEach(pw::println);
+			}
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
@@ -59,7 +77,7 @@ public class DrawGridCell implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new DrawGridCell(marmot).run();
+			new BuildDestinationPorts(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -73,7 +91,7 @@ public class DrawGridCell implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new DrawGridCell(marmot).run();
+				new BuildDestinationPorts(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

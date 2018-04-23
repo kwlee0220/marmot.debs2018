@@ -9,7 +9,7 @@ bind_dataset data/misc/DEBS/ports -dataset debs/ports -type text -geom_col the_g
 
 hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks_labeled data/misc/DEBS/ship_tracks_labeled
 bind_dataset data/misc/DEBS/ship_tracks_labeled -dataset debs/ship_tracks_labeled -type text -geom_col the_geom -srid EPSG:4326
-
+cluster_dataset debs/ship_tracks_labeled
 
 mc_export_shapefile tmp/debs/fishnet -f -output ~/tmp/debs_fishnet.shp
 RefineShipTracks

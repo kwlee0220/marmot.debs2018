@@ -1,4 +1,4 @@
-package debs2018;
+package debs2018.junk;
 
 import java.io.File;
 import java.io.IOException;

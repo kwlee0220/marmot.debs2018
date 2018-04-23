@@ -1,14 +1,18 @@
-package debs2018;
+package debs2018.junk;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import com.vividsolutions.jts.geom.Envelope;
+
+import debs2018.Globals;
+import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.geo.CoordinateTransform;
 import marmot.geo.GeoClientUtils;
-import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -18,34 +22,26 @@ import utils.StopWatch;
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class BuildTrajectories implements Runnable {
+public class DrawGridCell implements Runnable {
+	private static final String RESULT = "debs/empty_grid_cells";
+	
 	private final MarmotServer m_marmot;
 	
-	private BuildTrajectories(MarmotServer marmot) {
+	private DrawGridCell(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			String prjExpr = "the_geom,departure_port,ship_id,ship_type,"
-							+ "speed,course,heading,ts";
-			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
-			String expr = "ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pattern))";
+			Size2d cellSize = GeoClientUtils.divide(Globals.BOUNDS, Globals.RESOLUTION);
 			
-			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
-			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
-								.load(Globals.SHIP_TRACKS)
-								.expand("ts:long", initExpr, expr)
-								.project(prjExpr)
-								.groupBy("ship_id")
-									.taggedKeyColumns("ship_type")
-									.orderBy("ts:A")
-									.apply(PBUtils.serializeJava(trjGen))
-								.filter("dest_port != null")
-								.store(Globals.SHIP_TRACKS_LABELED)
+			Plan plan = m_marmot.planBuilder("draw_grid_cell")
+								.loadSquareGridFile(Globals.BOUNDS, cellSize)
+								.store(RESULT)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_LABELED, plan, true);
+			GeometryColumnInfo info = new GeometryColumnInfo("the_geom", "EPSG:4326");
+			m_marmot.createDataSet(RESULT, info, plan, true);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
@@ -67,7 +63,7 @@ public class BuildTrajectories implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new BuildTrajectories(marmot).run();
+			new DrawGridCell(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -81,7 +77,7 @@ public class BuildTrajectories implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new BuildTrajectories(marmot).run();
+				new DrawGridCell(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

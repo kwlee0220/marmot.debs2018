@@ -1,10 +1,11 @@
-package debs2018;
+package debs2018.junk;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import debs2018.Globals;
 import marmot.DataSet;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;

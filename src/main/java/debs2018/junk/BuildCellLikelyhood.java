@@ -1,9 +1,4 @@
-package debs2018;
-
-import java.io.FileWriter;
-import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+package debs2018.junk;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
@@ -12,51 +7,57 @@ import org.apache.log4j.PropertyConfigurator;
 
 import com.vividsolutions.jts.geom.Envelope;
 
-import marmot.Column;
+import debs2018.Globals;
 import marmot.DataSet;
+import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
-import marmot.RecordSet;
+import marmot.geo.CoordinateTransform;
+import marmot.geo.GeoClientUtils;
+import marmot.optor.AggregateFunction;
+import marmot.optor.geo.SpatialRelation;
 import utils.CommandLine;
 import utils.CommandLineParser;
+import utils.Size2d;
 import utils.StopWatch;
 
 /**
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class BuildDestinationPorts implements Runnable {
+public class BuildCellLikelyhood implements Runnable {
 	private final MarmotServer m_marmot;
 	
-	private BuildDestinationPorts(MarmotServer marmot) {
+	private BuildCellLikelyhood(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			Plan plan;
-			plan = m_marmot.planBuilder("export_csv")
-							.load(Globals.SHIP_TRACKS_LABELED)
-							.distinct("ship_id,depart_port,dest_port")
-							.project("ship_id,depart_port,dest_port")
-							.store("tmp/result")
-							.build();
-			DataSet result = m_marmot.createDataSet("tmp/result", plan, true);
-			try ( RecordSet rset = result.read();
-				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
-				String header = rset.getRecordSchema()
-									.columnFStream()
-									.map(Column::getName)
-									.join(",", "#", "");
-				pw.println(header);
-				
-				rset.stream()
-					.map(rec -> Arrays.stream(rec.getAll())
-										.map(Object::toString)
-										.collect(Collectors.joining(",")))
-					.forEach(pw::println);
-			}
+			CoordinateTransform ctrans = CoordinateTransform.get("EPSG:4326", "EPSG:3857");
+			Envelope bounds = ctrans.transform(Globals.BOUNDS);
+			Size2d cellSize = GeoClientUtils.divide(bounds, Globals.RESOLUTION);
+			
+			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
+								.loadSquareGridFile(bounds, cellSize)
+								.centroid("the_geom", "the_geom")
+								.buffer("the_geom", "circle", Globals.RADIUS)
+								.spatialJoin("circle", Globals.SHIP_TRACKS_LABELED,
+											SpatialRelation.INTERSECTS,
+											"*-{circle},param.{the_geom as the_geom2,departure_port,arrival_port_calc}")
+								.filter("arrival_port_calc.length() > 0")
+								.expand("mass:double", "mass = 1 / ST_Distance(the_geom,the_geom2)")
+								.groupBy("cell_id,departure_port,arrival_port_calc")
+									.taggedKeyColumns("cell_pos")
+									.aggregate(AggregateFunction.SUM("mass").as("mass"))
+								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
+								.project("x,y,departure_port,arrival_port_calc,mass")
+								.store(Globals.SHIP_GRID_CELLS)
+								.build();
+			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
+			
+			DebsUtils.printPrefix(ds, 100);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
@@ -78,7 +79,7 @@ public class BuildDestinationPorts implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new BuildDestinationPorts(marmot).run();
+			new BuildCellLikelyhood(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -92,7 +93,7 @@ public class BuildDestinationPorts implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new BuildDestinationPorts(marmot).run();
+				new BuildCellLikelyhood(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {
