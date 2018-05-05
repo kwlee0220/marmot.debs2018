@@ -1,46 +1,42 @@
-package debs2018.junk;
+package debs2018;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import com.vividsolutions.jts.geom.Envelope;
-
-import debs2018.Globals;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
-import marmot.geo.CoordinateTransform;
-import marmot.geo.GeoClientUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
-import utils.Size2d;
 import utils.StopWatch;
 
 /**
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class DrawGridCell implements Runnable {
-	private static final String RESULT = "debs/empty_grid_cells";
+public class DrawPortRadiusMain implements Runnable {
+	private static final String RESULT = "debs/ports_radius";
 	
 	private final MarmotServer m_marmot;
 	
-	private DrawGridCell(MarmotServer marmot) {
+	private DrawPortRadiusMain(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			Size2d cellSize = GeoClientUtils.divide(Globals.BOUNDS, Globals.RESOLUTION);
-			
-			Plan plan = m_marmot.planBuilder("draw_grid_cell")
-								.loadSquareGridFile(Globals.BOUNDS, cellSize)
+			Plan plan = m_marmot.planBuilder("draw_port_radius")
+								.load("debs/ports")
+								.transformCRS("the_geom", "EPSG:4326", "the_geom", "EPSG:3857")
+								.expand("region:polygon",
+										"region = ST_Buffer(the_geom, radius)")
+								.project("region as the_geom, port_name, radius")
 								.store(RESULT)
 								.build();
-			GeometryColumnInfo info = new GeometryColumnInfo("the_geom", "EPSG:4326");
+			GeometryColumnInfo info = new GeometryColumnInfo("the_geom", "EPSG:3857");
 			m_marmot.createDataSet(RESULT, info, plan, true);
 		}
 		catch ( Exception e ) {
@@ -63,7 +59,7 @@ public class DrawGridCell implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new DrawGridCell(marmot).run();
+			new DrawPortRadiusMain(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -77,7 +73,7 @@ public class DrawGridCell implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new DrawGridCell(marmot).run();
+				new DrawPortRadiusMain(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

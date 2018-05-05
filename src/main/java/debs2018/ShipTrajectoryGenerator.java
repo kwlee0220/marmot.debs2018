@@ -1,6 +1,7 @@
 package debs2018;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 
 import org.geotools.referencing.GeodeticCalculator;
@@ -12,6 +13,7 @@ import com.google.common.collect.Lists;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Point;
 
+import io.reactivex.Maybe;
 import io.reactivex.Observable;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -34,6 +36,7 @@ import plaslab.debs2018.ShipTrack;
 import plaslab.debs2018.gridcell.Point2f;
 import plaslab.debs2018.gridcell.train.ShipTrajectory;
 import plaslab.debs2018.gridcell.train.ShipTrajectoryDetector;
+import utils.stream.FStream;
 
 /**
  * 
@@ -47,12 +50,11 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 	private static final RecordSchema SCHEMA
 										= RecordSchema.builder()
 													.addColumn("the_geom", DataType.POINT)
-													.addColumn("traj_id", DataType.STRING)
-													.addColumn("departure_port", DataType.STRING)
+//													.addColumn("traj_id", DataType.STRING)
 													.addColumn("ts", DataType.LONG)
+													.addColumn("departure_port", DataType.STRING)
 													.addColumn("arrival_calc", DataType.LONG)
 													.addColumn("arrival_port_calc", DataType.STRING)
-//													.addColumn("gradient", DataType.BYTE)
 													.build();
 	
 	private transient Ports m_ports;
@@ -78,44 +80,133 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 											.map(r -> toShiptrack(shipId, shipType, r))
 											.observe();
 		
-		Observable<Record> trajs = ShipTrajectoryDetector.detect(shipId, tracks)
-														.flatMap(this::tagDestPort);
-		return RecordSets.from(SCHEMA, trajs);
+		List<RecordSet> rsetList = ShipTrajectoryDetector.detect(shipId, tracks)
+														.flatMapMaybe(this::trim)
+														.map(this::toRecordSet)
+														.toList()
+														.blockingGet();
+		return RecordSets.concat(SCHEMA, rsetList);
 	}
 	
-	private Observable<Record> tagDestPort(ShipTrajectory shipTraj) {
-		String departPort = shipTraj.getDeparturePortName();
-		ShipTrack first = shipTraj.getFirstTrack();
-		String trjId = String.format("%s_%d", first.shipId(), first.timestamp() / 1000);
-
+//	private RecordSet toRecordSetPair(ShipTrajectory traj) {
+//		String trajId = String.format("%s_%d",
+//									traj.shipId(), traj.getFirstTrack().timestamp());
+//		RecordSet forward = toRecordSet(traj, trajId);
+//		
+//		ShipTrajectory reversed = reverse(traj);
+//		RecordSet backward = toRecordSet(reversed, trajId+"_");
+//		
+//		return forward;
+//	}
+	
+	private RecordSet toRecordSet(ShipTrajectory traj) {
+		long suffix = traj.getFirstTrack().timestamp() / 1000 / 60;
+		String trajId = String.format("%s_%d", traj.shipId(), suffix);
+		return toRecordSet(traj, trajId);
+	}
+	
+	private RecordSet toRecordSet(ShipTrajectory traj, String trajId) {
+		ShipTrack last = traj.getLastTrack();
+		long arrivalTs = last.timestamp();
+		String arrivalPort = traj.arrivalPortCalc().get();
+		FStream<Record> trace
+			= FStream.of(traj.getTrackAll())
+					.map(track -> toRecord(trajId, traj.leavingPort(), arrivalTs,
+											arrivalPort, track));
 		
-		return findArrivalTrack(shipTraj)
-			.map(arrival ->
-					Observable.fromIterable(shipTraj.getTrackAll())
-							.map(track -> toRecord(trjId, departPort, arrival._1.timestamp(),
-													arrival._2.name(), track)))
-			.getOrElse(Observable.empty());
+		return RecordSets.from(SCHEMA, trace);
 	}
 	
-	private Option<Tuple2<ShipTrack, Port>> findArrivalTrack(ShipTrajectory shipTraj) {
-		Point2f loc = shipTraj.getLastTrack().location();
+	private Maybe<ShipTrajectory> trim(ShipTrajectory traj) {
+		Tuple2<Port,Integer> arrival = findArrivalTrack(traj);
+		if ( arrival == null ) {
+			return Maybe.empty();
+		}
+		
+		ShipTrack last = traj.getTrackAll().get(arrival._2-1);
+		List<ShipTrack> trimmeds = traj.getTrackAll().subList(0, arrival._2);
+		traj = new ShipTrajectory(traj.shipId(), traj.leavingPort(), trimmeds)
+					.arrivalPortCalc(arrival._1.name())
+					.arrivalTsCalc(last.timestamp());
+		
+		int departIdx = findDepartureTrack(traj);
+		if ( departIdx > 0 ) {
+			trimmeds = traj.getTrackAll()
+							.subList(departIdx, traj.getTrackAll().size());
+			ShipTrajectory traj2 = new ShipTrajectory(traj.shipId(), traj.leavingPort(), trimmeds);
+			traj.arrivalPortCalc().forEach(port -> traj2.arrivalPortCalc(port));
+			traj.arrivalTsCalc().forEach(ts -> traj2.arrivalTsCalc(ts));
+			traj = traj2;
+		}
+		
+		return Maybe.just(traj);
+	}
+	
+	private Tuple2<Port,Integer> findArrivalTrack(ShipTrajectory traj) {
+		Point2f loc = traj.getLastTrack().location();
 		Option<Port> oport = m_ports.findNearestValidPort(loc);
 		if ( oport.isDefined() ) {
 			Port port = oport.get();
 			
-			List<ShipTrack> tracks =shipTraj.getTrackAll();
+			List<ShipTrack> tracks =traj.getTrackAll();
 			for ( int i = tracks.size()-1; i >=0; --i ) {
 				ShipTrack track = tracks.get(i);
 				if ( !isArrivedAtPort(track, port) ) {
-					return Option.some(Tuple.of(tracks.get(i+1), port));
+					return Tuple.of(port, i+2);
 				}
 			}
 			
-			return Option.some(Tuple.of(tracks.get(0), port));
+			return Tuple.of(port, 1);
 		}
 		
 		return m_ports.findNearestValidPort(loc , Ports.DEFAULT_MARGIN)
-						.map(port -> Tuple.of(shipTraj.getLastTrack(), port));
+						.map(port -> Tuple.of(port, traj.length()))
+						.getOrNull();
+	}
+	
+	private int findDepartureTrack(ShipTrajectory traj) {
+		Port departPort = m_ports.getPort(traj.leavingPort());
+		List<ShipTrack> tracks = traj.getTrackAll();
+		for ( int i =0; i < tracks.size(); ++i ) {
+			ShipTrack track = tracks.get(i);
+			double dist = calcDistance(departPort.location(), track.location()) / 1000;
+			if ( dist > departPort.radius() ) {
+				return i-1;
+			}
+		}
+		
+		return -1;
+	}
+	
+	private ShipTrajectory reverse(ShipTrajectory traj) {
+		ShipTrack first = traj.getFirstTrack();
+		ShipTrack last = traj.getLastTrack();
+
+		Port departPort = m_ports.getPort(traj.leavingPort());
+		String arrivalPort = traj.arrivalPortCalc().get();
+		long arrivalTs = last.timestamp();
+		
+		List<ShipTrack> tracks = Lists.newArrayList(traj.getTrackAll());
+		Collections.reverse(tracks);
+		
+		List<ShipTrack> trace
+			= FStream.of(tracks)
+					.map(track ->
+						new ShipTrack(track.taskId(), arrivalPort, track.shipId(),
+									track.shipType(), track.location(), track.speed(),
+									track.course(), track.heading(),
+									arrivalTs-track.timestamp(), (byte)-1))
+					.toList();
+		
+		ShipTrajectory reversed = new ShipTrajectory(traj.shipId(), arrivalPort, trace)
+										.arrivalPortCalc(departPort.name());
+		
+		double dist = calcDistance(first.location(), departPort.location()) / 1000;
+		if ( Double.compare(dist, departPort.radius() + Ports.DEFAULT_MARGIN) <= 0 ) {
+			reversed.arrivalTsCalc(reversed.getLastTrack().timestamp());
+		}
+		
+		return reversed;
 	}
 	
 	private boolean isArrivedAtPort(ShipTrack track, Port port) {

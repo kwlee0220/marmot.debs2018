@@ -46,7 +46,7 @@ public class BuildCellLikelyhood implements Runnable {
 								.spatialJoin("circle", Globals.SHIP_TRACKS_LABELED,
 											SpatialRelation.INTERSECTS,
 											"*-{circle},param.{the_geom as the_geom2,departure_port,arrival_port_calc}")
-								.filter("arrival_port_calc.length() > 0")
+								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
 								.expand("mass:double", "mass = 1 / ST_Distance(the_geom,the_geom2)")
 								.groupBy("cell_id,departure_port,arrival_port_calc")
 									.taggedKeyColumns("cell_pos")

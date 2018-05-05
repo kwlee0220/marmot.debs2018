@@ -28,8 +28,11 @@ public class BuildTrajectoriesMain implements Runnable {
 		try {
 			String prjExpr = "the_geom,departure_port,ship_id,ship_type,"
 							+ "speed,course,heading,ts";
-			String initExpr = "$pattern = ST_DTPattern('dd-MM-yy HH:mm:ss')";
-			String expr = "ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pattern))";
+			String initExpr = "$pat1 = ST_DTPattern('dd-MM-yy H:mm:ss');"
+							+ "$pat2 = ST_DTPattern('dd-MM-yy H:mm');";
+			String expr = "if ( timestamp.split(':').length == 2 ) {"
+						+ "   ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pat2)); }"
+						+ "else { ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pat1)); }";
 			
 			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")

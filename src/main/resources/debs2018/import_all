@@ -11,6 +11,10 @@ hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks_labeled data/
 bind_dataset data/misc/DEBS/ship_tracks_labeled -dataset debs/ship_tracks_labeled -type text -geom_col the_geom -srid EPSG:4326
 cluster_dataset debs/ship_tracks_labeled
 
+hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks_labeled_old data/misc/DEBS/ship_tracks_labeled_old
+bind_dataset data/misc/DEBS/ship_tracks_labeled -dataset debs/ship_tracks_labeled_old -type text -geom_col the_geom -srid EPSG:4326
+cluster_dataset debs/ship_tracks_labeled_old
+
 mc_export_shapefile tmp/debs/fishnet -f -output ~/tmp/debs_fishnet.shp
 RefineShipTracks
 AssignGridCell
