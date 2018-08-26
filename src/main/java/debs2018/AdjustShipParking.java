@@ -1,7 +1,5 @@
 package debs2018;
 
-import static marmot.optor.AggregateFunction.COUNT;
-
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -9,43 +7,46 @@ import org.apache.log4j.PropertyConfigurator;
 
 import marmot.MarmotServer;
 import marmot.Plan;
-import marmot.geo.GeoClientUtils;
+import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
-import utils.Size2d;
 import utils.StopWatch;
 
 /**
  * 
  * @author Kang-Woo Lee (ETRI)
  */
-public class BuildHistogram implements Runnable {
+public class AdjustShipParking implements Runnable {
 	private final MarmotServer m_marmot;
 	
-	private BuildHistogram(MarmotServer marmot) {
+	private AdjustShipParking(MarmotServer marmot) {
 		m_marmot = marmot;
 	}
 
 	@Override
 	public void run() {
 		try {
-			Size2d cellSize = GeoClientUtils.divide(Globals.BOUNDS, Globals.RESOLUTION);
+			String initExpr = "$pat1 = ST_DTPattern('dd-MM-yy H:mm:ss');"
+							+ "$pat2 = ST_DTPattern('dd-MM-yy H:mm');";
+			String expr = "if ( timestamp.split(':').length == 2 ) {"
+						+ "   ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pat2)); }"
+						+ "else { ts = ST_DTToMillis(ST_DTParseLE(timestamp, $pat1)); }";
+			String expr2 = "if ( arrival_calc.split(':').length == 2 ) {"
+						+ "   arrival_calc = ST_DTToMillis(ST_DTParseLE(arrival_calc, $pat2)); }"
+						+ "else { arrival_calc = ST_DTToMillis(ST_DTParseLE(arrival_calc, $pat1)); }"; 
 			
+			ShipTrajectoryAdjust adjust = new ShipTrajectoryAdjust();
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
-								.load(Globals.SHIP_TRACKS_LABELED)
+								.load(Globals.SHIP_TRACKS_TIME)
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-								.assignSquareGridCell("the_geom", Globals.BOUNDS, cellSize)
-								.groupBy("traj_id,cell_id")
-									.tagWith("cell_pos,departure_port,arrival_port_calc,ship_type")
-									.findFirst()
-								.groupBy("cell_id,departure_port,arrival_port_calc,ship_type")
-									.tagWith("cell_pos")
-									.aggregate(COUNT().as("count"))
-								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
-								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
-								.store(Globals.SHIP_GRID_CELLS)
+								.expand("ts:long", initExpr, expr)
+								.expand("arrival_calc:long", initExpr, expr2)
+								.groupBy("ship_id,departure_port,arrival_port_calc")
+									.orderBy("ts:A")
+									.apply(PBUtils.serializeJava(adjust))
+								.store(Globals.SHIP_TRACKS_TIME_ADJUST)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, true);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
@@ -67,7 +68,7 @@ public class BuildHistogram implements Runnable {
 			StopWatch watch = StopWatch.start();
 
 			MarmotServer marmot = MarmotServer.initializeForLocalhost();
-			new BuildHistogram(marmot).run();
+			new AdjustShipParking(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 		}
@@ -81,7 +82,7 @@ public class BuildHistogram implements Runnable {
 				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
-				new BuildHistogram(marmot).run();
+				new AdjustShipParking(marmot).run();
 				System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
 			}
 			catch ( IllegalArgumentException e ) {

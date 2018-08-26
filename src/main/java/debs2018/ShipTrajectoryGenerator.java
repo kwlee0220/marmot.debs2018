@@ -3,6 +3,7 @@ package debs2018;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.geotools.referencing.GeodeticCalculator;
 import org.slf4j.Logger;
@@ -25,7 +26,7 @@ import marmot.RecordSet;
 import marmot.geo.CoordinateTransform;
 import marmot.geo.GeoClientUtils;
 import marmot.geo.GeoUtils;
-import marmot.optor.rset.GroupedRecordSet;
+import marmot.optor.rset.KeyedRecordSet;
 import marmot.optor.support.AbstractRecordSetFunction;
 import marmot.rset.RecordSets;
 import marmot.support.DefaultRecord;
@@ -50,7 +51,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 	private static final RecordSchema SCHEMA
 										= RecordSchema.builder()
 													.addColumn("the_geom", DataType.POINT)
-//													.addColumn("traj_id", DataType.STRING)
+													.addColumn("traj_id", DataType.STRING)
 													.addColumn("ts", DataType.LONG)
 													.addColumn("departure_port", DataType.STRING)
 													.addColumn("arrival_calc", DataType.LONG)
@@ -70,11 +71,11 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 	@Override
 	public RecordSet apply(RecordSet input) {
 		checkInitialized();
-		Preconditions.checkArgument(input instanceof GroupedRecordSet);
+		Preconditions.checkArgument(input instanceof KeyedRecordSet);
 		
-		GroupedRecordSet group = (GroupedRecordSet)input;
-		String shipId = (String)group.getGroupKey().getValueAt(0);
-		byte shipType = (byte)group.getGroupKey().getValueAt(1);
+		KeyedRecordSet group = (KeyedRecordSet)input;
+		String shipId = (String)group.getKey().getValueAt(0);
+		byte shipType = (byte)group.getKey().getValueAt(1);
 		
 		Observable<ShipTrack> tracks = group.fstream()
 											.map(r -> toShiptrack(shipId, shipType, r))
@@ -85,7 +86,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 														.map(this::toRecordSet)
 														.toList()
 														.blockingGet();
-		return RecordSets.concat(SCHEMA, rsetList);
+		return RecordSets.concat(rsetList.get(0).getRecordSchema(), rsetList);
 	}
 	
 //	private RecordSet toRecordSetPair(ShipTrajectory traj) {
@@ -100,7 +101,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 //	}
 	
 	private RecordSet toRecordSet(ShipTrajectory traj) {
-		long suffix = traj.getFirstTrack().timestamp() / 1000 / 60;
+		long suffix = TimeUnit.MILLISECONDS.toMinutes(traj.getFirstTrack().timestamp());
 		String trajId = String.format("%s_%d", traj.shipId(), suffix);
 		return toRecordSet(traj, trajId);
 	}
@@ -139,7 +140,13 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 			traj = traj2;
 		}
 		
-		return Maybe.just(traj);
+		if ( traj.length() >= 5 ) {
+			return Maybe.just(traj);
+		}
+		else {
+//			System.out.println("drop too short trajectory: " + traj);
+			return Maybe.empty();
+		}
 	}
 	
 	private Tuple2<Port,Integer> findArrivalTrack(ShipTrajectory traj) {

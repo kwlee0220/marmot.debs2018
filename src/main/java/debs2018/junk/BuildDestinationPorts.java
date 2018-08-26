@@ -46,7 +46,7 @@ public class BuildDestinationPorts implements Runnable {
 				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
 				String header = rset.getRecordSchema()
 									.columnFStream()
-									.map(Column::getName)
+									.map(Column::name)
 									.join(",", "#", "");
 				pw.println(header);
 				

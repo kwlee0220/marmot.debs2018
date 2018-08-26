@@ -35,6 +35,9 @@ import utils.stream.FStream;
  * @author Kang-Woo Lee (ETRI)
  */
 public class ExportTrajectoriesByPort implements Runnable {
+	private static final String TOP_DIR_PATH = "/home/kwlee/tmp/debs/labels";
+	private static final File TOP_DIR = new File(TOP_DIR_PATH);
+	
 	private final MarmotServer m_marmot;
 	
 	private ExportTrajectoriesByPort(MarmotServer marmot) {
@@ -43,55 +46,66 @@ public class ExportTrajectoriesByPort implements Runnable {
 
 	@Override
 	public void run() {
-		Try.run(() -> Files.deleteIfExists(Paths.get("/home/kwlee/tmp/labels")));
-		Try.run(() -> new File("/home/kwlee/tmp/labels").mkdir());
+		Try.run(() -> Files.deleteIfExists(TOP_DIR.toPath()));
+		Try.run(() -> TOP_DIR.mkdir());
 		
 		Plan plan;
 		plan = m_marmot.planBuilder("by_port")
 						.load(Globals.SHIP_TRACKS_LABELED)
-						.project("departure_port,arrival_port_calc")
-						.distinct("departure_port,arrival_port_calc")
+						.project("departure_port,arrival_port_calc,ship_id")
+						.distinct("departure_port,arrival_port_calc,ship_id")
 						.store("tmp/result")
 						.build();
 		DataSet output = m_marmot.createDataSet("tmp/result", plan, true);
 		Map<String,List<String>> port2port;
 		try ( RecordSet rset = output.read() ) {
 			port2port = rset.fstream()
-						.map(r -> Tuple.of(r.getString(0), r.getString(1)))
+						.map(r -> Tuple.of(r.getString(0), r.getString(1), r.getString(2)))
 						.collectLeft(Maps.newHashMap(), (m,t) -> 
 									m.computeIfAbsent(t._1, k-> Lists.newArrayList())
 										.add(t._2));
 		}
 		
 		for ( Map.Entry<String, List<String>> ent: port2port.entrySet() ) {
-			String filter = String.format("departure_port == '%s'", ent.getKey());
+			String departPort = ent.getKey();
+			
+			String filter = String.format("departure_port == '%s'", departPort);
 			plan = m_marmot.planBuilder("by_port")
 							.load(Globals.SHIP_TRACKS_LABELED)
 							.filter(filter)
 							.build();
 			
-			Map<String,List<Record>> fromPorts = Maps.newHashMap();
+			Map<String,Map<String,List<Record>>> fromPorts = Maps.newHashMap();
 			try ( RecordSet rset = m_marmot.executeLocally(plan) ) {
 				rset.forEachCopy(r -> {
 					String arrivalPort = r.getString("arrival_port_calc");
-					fromPorts.computeIfAbsent(arrivalPort, k -> Lists.newArrayList())
+					String shipId = r.getString("ship_id");
+					fromPorts.computeIfAbsent(arrivalPort, k -> Maps.newHashMap())
+							.computeIfAbsent(shipId, k -> Lists.newArrayList())
 							.add(r);
 				});
 			}
-			for ( Map.Entry<String, List<Record>> ent2: fromPorts.entrySet() ) {
-				String file = String.format("/home/kwlee/tmp/labels/%s_%s.csv", ent.getKey(), ent2.getKey());
+			for ( Map.Entry<String, Map<String,List<Record>>> ent2: fromPorts.entrySet() ) {
+				String arrivalPort = ent2.getKey();
 			
-				try ( FileWriter writer = new FileWriter(new File(file));
-						PrintWriter pw = new PrintWriter(writer) ) {
+				for ( Map.Entry<String, List<Record>> ent3: ent2.getValue().entrySet() ) {
+					String shipId = ent3.getKey().substring(0, 7);
 					
-					ent2.getValue().stream().forEach(r -> {
-						pw.println(FStream.of(r.getAll())
-											.map(v -> "" + v)
-											.join(","));
-					});
-				}
-				catch ( IOException e ) {
-					e.printStackTrace();
+					String file = String.format("%s/%s_%s_%s.csv",
+												TOP_DIR_PATH, departPort, arrivalPort, shipId);
+				
+					try ( FileWriter writer = new FileWriter(new File(file));
+							PrintWriter pw = new PrintWriter(writer) ) {
+						
+						ent3.getValue().stream().forEach(r -> {
+							pw.println(FStream.of(r.getAll())
+												.map(v -> "" + v)
+												.join(","));
+						});
+					}
+					catch ( IOException e ) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}

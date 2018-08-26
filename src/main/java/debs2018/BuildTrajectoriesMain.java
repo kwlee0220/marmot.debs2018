@@ -40,7 +40,7 @@ public class BuildTrajectoriesMain implements Runnable {
 								.expand("ts:long", initExpr, expr)
 								.project(prjExpr)
 								.groupBy("ship_id")
-									.taggedKeyColumns("ship_type")
+									.tagWith("ship_type")
 									.orderBy("ts:A")
 									.apply(PBUtils.serializeJava(trjGen))
 								.filter("departure_port != null")

@@ -11,6 +11,8 @@ import utils.Size2i;
 public class Globals {
 	public static final String SHIP_TRACKS = "debs/ship_tracks";
 	public static final String SHIP_TRACKS_LABELED = "debs/ship_tracks_labeled";
+	public static final String SHIP_TRACKS_TIME = "debs/ship_tracks_time";
+	public static final String SHIP_TRACKS_TIME_ADJUST = "debs/ship_tracks_time_adjusted";
 	public static final String SHIP_GRID_CELLS = "debs/gridcells";
 	public static final String SHIP_GRID_CELLS_TIME = "debs/gridcells_time";
 	public static final int WORKER_COUNT = 17;

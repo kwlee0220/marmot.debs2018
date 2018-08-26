@@ -1,9 +1,11 @@
 hadoop fs -mkdir data/misc
 hadoop fs -mkdir data/misc/DEBS
 
+hadoop fs -rm -r -skipTrash data/misc/DEBS/ship_tracks
 hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks data/misc/DEBS/ship_tracks
 bind_dataset data/misc/DEBS/ship_tracks -dataset debs/ship_tracks -type text -geom_col the_geom -srid EPSG:4326
 
+hadoop fs -rm -r -skipTrash data/misc/DEBS/ports
 hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ports data/misc/DEBS
 bind_dataset data/misc/DEBS/ports -dataset debs/ports -type text -geom_col the_geom -srid EPSG:4326
 
@@ -11,9 +13,9 @@ hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks_labeled data/
 bind_dataset data/misc/DEBS/ship_tracks_labeled -dataset debs/ship_tracks_labeled -type text -geom_col the_geom -srid EPSG:4326
 cluster_dataset debs/ship_tracks_labeled
 
-hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks_labeled_old data/misc/DEBS/ship_tracks_labeled_old
-bind_dataset data/misc/DEBS/ship_tracks_labeled -dataset debs/ship_tracks_labeled_old -type text -geom_col the_geom -srid EPSG:4326
-cluster_dataset debs/ship_tracks_labeled_old
+hadoop fs -rm -r -skipTrash data/misc/DEBS/ship_tracks_time
+hadoop fs -copyFromLocal $MARMOT_DATA/기타/DEBS/2018/ship_tracks_time data/misc/DEBS/ship_tracks_time
+bind_dataset data/misc/DEBS/ship_tracks_time -dataset debs/ship_tracks_time -type text -geom_col the_geom -srid EPSG:4326
 
 mc_export_shapefile tmp/debs/fishnet -f -output ~/tmp/debs_fishnet.shp
 RefineShipTracks

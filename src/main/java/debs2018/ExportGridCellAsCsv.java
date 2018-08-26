@@ -42,7 +42,6 @@ public class ExportGridCellAsCsv implements Runnable {
 												bounds.getMinY(), bounds.getMaxY());
 				pw.printf("grid-dimension: %s", Globals.RESOLUTION);
 			}
-			
 			export(Globals.SHIP_GRID_CELLS, new File("gridcell.csv"));
 			export(Globals.SHIP_GRID_CELLS_TIME, new File("gridcell_time.csv"));
 		}
@@ -58,7 +57,7 @@ public class ExportGridCellAsCsv implements Runnable {
 			PrintWriter pw = new PrintWriter(new FileWriter(csvFile)) ) {
 			String header = rset.getRecordSchema()
 								.columnFStream()
-								.map(Column::getName)
+								.map(Column::name)
 								.join(",", "#", "");
 			pw.println(header);
 			
