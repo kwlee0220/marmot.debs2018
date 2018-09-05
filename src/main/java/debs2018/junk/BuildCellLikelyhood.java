@@ -9,7 +9,6 @@ import com.vividsolutions.jts.geom.Envelope;
 
 import debs2018.Globals;
 import marmot.DataSet;
-import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.CoordinateTransform;
@@ -47,11 +46,11 @@ public class BuildCellLikelyhood implements Runnable {
 											SpatialRelation.INTERSECTS,
 											"*-{circle},param.{the_geom as the_geom2,departure_port,arrival_port_calc}")
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-								.expand("mass:double", "mass = 1 / ST_Distance(the_geom,the_geom2)")
+								.expand("mass:double").initializer("mass = 1 / ST_Distance(the_geom,the_geom2)")
 								.groupBy("cell_id,departure_port,arrival_port_calc")
 									.tagWith("cell_pos")
 									.aggregate(AggregateFunction.SUM("mass").as("mass"))
-								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
+								.expand("x:int,y:int").initializer("x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,departure_port,arrival_port_calc,mass")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();

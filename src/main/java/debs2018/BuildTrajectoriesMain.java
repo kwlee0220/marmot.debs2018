@@ -37,7 +37,7 @@ public class BuildTrajectoriesMain implements Runnable {
 			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
 								.load(Globals.SHIP_TRACKS)
-								.expand("ts:long", initExpr, expr)
+								.expand("ts:long").initializer(initExpr, expr)
 								.project(prjExpr)
 								.groupBy("ship_id")
 									.tagWith("ship_type")

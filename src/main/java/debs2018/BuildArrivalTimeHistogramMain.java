@@ -2,7 +2,6 @@ package debs2018;
 
 import static marmot.optor.AggregateFunction.AVG;
 import static marmot.optor.AggregateFunction.COUNT;
-import static marmot.optor.AggregateFunction.SUM;
 
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
@@ -47,16 +46,16 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 			plan = m_marmot.planBuilder("build_eta_statistics")
 							.load(Globals.SHIP_TRACKS_TIME)
 							.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-							.expand("ts:long", initExpr, expr)
-							.expand("arrival_calc:long", initExpr, expr2)
+							.expand("ts:long").initializer(initExpr, expr)
+							.expand("arrival_calc:long").initializer(initExpr, expr2)
 							.assignSquareGridCell("the_geom", Globals.BOUNDS, cellSize)
-							.expand("remains_millis:long", getRemainingTime)
-							.expand("speed:int", "speed = Math.round(speed)")
+							.expand("remains_millis:long").initializer(getRemainingTime)
+							.expand("speed:int").initializer("speed = Math.round(speed)")
 							.groupBy("cell_id,arrival_port_calc,speed")
 								.tagWith("cell_pos")
 								.aggregate(AVG("remains_millis"), COUNT())
-							.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
-							.expand("remains_millis:long", "remains_millis = Math.round(avg)")
+							.expand("x:int,y:int").initializer("x = cell_pos.x; y=cell_pos.y;")
+							.expand("remains_millis:long").initializer("remains_millis = Math.round(avg)")
 							.project("x,y,arrival_port_calc,speed,remains_millis,count")
 							.store(Globals.SHIP_GRID_CELLS_TIME)
 							.build();

@@ -41,7 +41,7 @@ public class BuildHistogram implements Runnable {
 								.groupBy("cell_id,departure_port,arrival_port_calc,ship_type")
 									.tagWith("cell_pos")
 									.aggregate(COUNT().as("count"))
-								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
+								.expand("x:int,y:int").initializer("x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();

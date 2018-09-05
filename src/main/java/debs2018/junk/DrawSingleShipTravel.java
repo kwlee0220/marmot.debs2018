@@ -41,7 +41,7 @@ public class DrawSingleShipTravel implements Runnable {
 								.load(Globals.SHIP_TRACKS)
 								.filter("ship_id=='0xa3196e6e04ca25ea904135d63706b048aa47c952'"
 										+ "&& departure_port_name=='PORT SAID'")
-								.expand("ts:long", initExpr, expr)
+								.expand("ts:long").initializer(initExpr, expr)
 								.project(prjExpr)
 								.build();
 			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",
