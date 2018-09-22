@@ -5,10 +5,12 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
+import marmot.optor.geo.SquareGrid;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -33,11 +35,11 @@ public class DrawGridCellMain implements Runnable {
 			Size2d cellSize = GeoClientUtils.divide(Globals.BOUNDS, Globals.RESOLUTION);
 			
 			Plan plan = m_marmot.planBuilder("draw_grid_cell")
-								.loadSquareGridFile(Globals.BOUNDS, cellSize)
+								.loadSquareGridFile(new SquareGrid(Globals.BOUNDS, cellSize), -1)
 								.store(RESULT)
 								.build();
 			GeometryColumnInfo info = new GeometryColumnInfo("the_geom", "EPSG:4326");
-			m_marmot.createDataSet(RESULT, info, plan, true);
+			m_marmot.createDataSet(RESULT, info, plan, DataSetOption.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

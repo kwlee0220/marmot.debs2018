@@ -10,6 +10,7 @@ import org.apache.log4j.PropertyConfigurator;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
+import marmot.optor.geo.SquareGrid;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -34,14 +35,14 @@ public class BuildHistogram implements Runnable {
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
 								.load(Globals.SHIP_TRACKS_LABELED)
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-								.assignSquareGridCell("the_geom", Globals.BOUNDS, cellSize)
+								.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
 								.groupBy("traj_id,cell_id")
 									.tagWith("cell_pos,departure_port,arrival_port_calc,ship_type")
 									.findFirst()
 								.groupBy("cell_id,departure_port,arrival_port_calc,ship_type")
 									.tagWith("cell_pos")
 									.aggregate(COUNT().as("count"))
-								.expand("x:int,y:int").initializer("x = cell_pos.x; y=cell_pos.y;")
+								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();

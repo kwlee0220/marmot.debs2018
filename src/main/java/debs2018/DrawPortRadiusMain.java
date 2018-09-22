@@ -5,6 +5,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
@@ -30,14 +31,13 @@ public class DrawPortRadiusMain implements Runnable {
 		try {
 			Plan plan = m_marmot.planBuilder("draw_port_radius")
 								.load("debs/ports")
-								.transformCrs("the_geom", "EPSG:4326", "the_geom", "EPSG:3857")
-								.expand("region:polygon")
-									.initializer("region = ST_Buffer(the_geom, radius)")
+								.transformCrs("the_geom", "EPSG:4326", "EPSG:3857", "the_geom")
+								.expand("region:polygon", "region = ST_Buffer(the_geom, radius)")
 								.project("region as the_geom, port_name, radius")
 								.store(RESULT)
 								.build();
 			GeometryColumnInfo info = new GeometryColumnInfo("the_geom", "EPSG:3857");
-			m_marmot.createDataSet(RESULT, info, plan, true);
+			m_marmot.createDataSet(RESULT, info, plan, DataSetOption.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

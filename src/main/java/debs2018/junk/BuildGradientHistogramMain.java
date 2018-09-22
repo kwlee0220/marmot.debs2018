@@ -11,6 +11,7 @@ import debs2018.Globals;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
+import marmot.optor.geo.SquareGrid;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -35,11 +36,11 @@ public class BuildGradientHistogramMain implements Runnable {
 			
 			Plan plan = m_marmot.planBuilder("tag_gradient")
 								.load(Globals.SHIP_TRACKS_LABELED)
-								.assignSquareGridCell("the_geom", Globals.BOUNDS, cellSize)
+								.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
 								.groupBy("cell_id,gradient,arrival_port_calc")
 									.tagWith("cell_pos")
 									.aggregate(COUNT().as("count"))
-								.expand("x:int,y:int").initializer("x = cell_pos.x; y=cell_pos.y;")
+								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,gradient,arrival_port_calc,count")
 								.store("tmp/result")
 								.build();

@@ -7,6 +7,7 @@ import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
 import marmot.DataSet;
+import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
@@ -37,7 +38,7 @@ public class DrawSingleTrajectory implements Runnable {
 								.build();
 			DataSet result = m_marmot.createDataSet("tmp/single_line",
 													new GeometryColumnInfo("the_geom", "EPSG:4326"),
-													plan, true);
+													plan, DataSetOption.FORCE);
 			
 			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
 			DebsUtils.printPrefix(result, 5);

@@ -7,6 +7,7 @@ import org.apache.log4j.PropertyConfigurator;
 
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.plan.RecordScript;
 import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
@@ -37,7 +38,7 @@ public class BuildTrajectoriesMain implements Runnable {
 			ShipTrajectoryGenerator trjGen = new ShipTrajectoryGenerator();
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
 								.load(Globals.SHIP_TRACKS)
-								.expand("ts:long").initializer(initExpr, expr)
+								.expand("ts:long", RecordScript.of(initExpr, expr))
 								.project(prjExpr)
 								.groupBy("ship_id")
 									.tagWith("ship_type")

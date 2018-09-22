@@ -9,8 +9,10 @@ import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
 import marmot.DataSet;
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.plan.RecordScript;
 import marmot.rset.RecordSets;
 import utils.CommandLine;
 import utils.CommandLineParser;
@@ -41,12 +43,12 @@ public class DrawSingleShipTravel implements Runnable {
 								.load(Globals.SHIP_TRACKS)
 								.filter("ship_id=='0xa3196e6e04ca25ea904135d63706b048aa47c952'"
 										+ "&& departure_port_name=='PORT SAID'")
-								.expand("ts:long").initializer(initExpr, expr)
+								.expand("ts:long", RecordScript.of(initExpr, expr))
 								.project(prjExpr)
 								.build();
 			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",
 													input.getGeometryColumnInfo(),
-													plan, true);
+													plan, DataSetOption.FORCE);
 			
 			RecordSets.observe(result.read())
 				.buffer(2,1)

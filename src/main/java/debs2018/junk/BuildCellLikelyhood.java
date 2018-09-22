@@ -14,7 +14,8 @@ import marmot.Plan;
 import marmot.geo.CoordinateTransform;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.AggregateFunction;
-import marmot.optor.geo.SpatialRelation;
+import marmot.optor.geo.SquareGrid;
+import marmot.plan.GeomOpOption;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -39,18 +40,17 @@ public class BuildCellLikelyhood implements Runnable {
 			Size2d cellSize = GeoClientUtils.divide(bounds, Globals.RESOLUTION);
 			
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
-								.loadSquareGridFile(bounds, cellSize)
-								.centroid("the_geom", "the_geom")
-								.buffer("the_geom", "circle", Globals.RADIUS)
+								.loadSquareGridFile(new SquareGrid(bounds, cellSize), -1)
+								.centroid("the_geom")
+								.buffer("the_geom", Globals.RADIUS, GeomOpOption.OUTPUT("circle"))
 								.spatialJoin("circle", Globals.SHIP_TRACKS_LABELED,
-											SpatialRelation.INTERSECTS,
 											"*-{circle},param.{the_geom as the_geom2,departure_port,arrival_port_calc}")
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-								.expand("mass:double").initializer("mass = 1 / ST_Distance(the_geom,the_geom2)")
+								.expand("mass:double", "mass = 1 / ST_Distance(the_geom,the_geom2)")
 								.groupBy("cell_id,departure_port,arrival_port_calc")
 									.tagWith("cell_pos")
 									.aggregate(AggregateFunction.SUM("mass").as("mass"))
-								.expand("x:int,y:int").initializer("x = cell_pos.x; y=cell_pos.y;")
+								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,departure_port,arrival_port_calc,mass")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();

@@ -7,6 +7,7 @@ import org.apache.log4j.PropertyConfigurator;
 
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.plan.RecordScript;
 import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
@@ -39,10 +40,8 @@ public class AdjustShipParking implements Runnable {
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
 								.load(Globals.SHIP_TRACKS_TIME)
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-								.expand("ts:long")
-									.initializer(initExpr, expr)
-								.expand("arrival_calc:long")
-									.initializer(initExpr, expr2)
+								.expand("ts:long", RecordScript.of(initExpr, expr))
+								.expand("arrival_calc:long", RecordScript.of(initExpr, expr2))
 								.groupBy("ship_id,departure_port,arrival_port_calc")
 									.orderBy("ts:A")
 									.apply(PBUtils.serializeJava(adjust))
