@@ -8,6 +8,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
@@ -44,7 +45,7 @@ public class BuildGradientHistogramMain implements Runnable {
 								.project("x,y,gradient,arrival_port_calc,count")
 								.store("tmp/result")
 								.build();
-			m_marmot.createDataSet("tmp/result", plan, true);
+			m_marmot.createDataSet("tmp/result", plan, DataSetOption.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

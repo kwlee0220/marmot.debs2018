@@ -8,6 +8,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
@@ -60,7 +61,7 @@ public class BuildArrivalTimeHistogramMainBak implements Runnable {
 							.project("x,y,arrival_port_calc,ship_type,remains_millis,count")
 							.store(Globals.SHIP_GRID_CELLS_TIME)
 							.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan, true);
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan, DataSetOption.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

@@ -5,7 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +19,7 @@ import com.google.common.collect.Maps;
 import io.vavr.Tuple;
 import io.vavr.control.Try;
 import marmot.DataSet;
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.Record;
@@ -27,7 +27,6 @@ import marmot.RecordSet;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
-import utils.io.IOUtils;
 import utils.stream.FStream;
 
 /**
@@ -56,7 +55,7 @@ public class ExportTrajectoriesByPort implements Runnable {
 						.distinct("departure_port,arrival_port_calc,ship_id")
 						.store("tmp/result")
 						.build();
-		DataSet output = m_marmot.createDataSet("tmp/result", plan, true);
+		DataSet output = m_marmot.createDataSet("tmp/result", plan, DataSetOption.FORCE);
 		Map<String,List<String>> port2port;
 		try ( RecordSet rset = output.read() ) {
 			port2port = rset.fstream()

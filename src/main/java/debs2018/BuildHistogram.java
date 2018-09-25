@@ -7,6 +7,7 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
@@ -46,7 +47,7 @@ public class BuildHistogram implements Runnable {
 								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, DataSetOption.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

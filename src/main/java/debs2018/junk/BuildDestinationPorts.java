@@ -13,6 +13,7 @@ import org.apache.log4j.PropertyConfigurator;
 import debs2018.Globals;
 import marmot.Column;
 import marmot.DataSet;
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordSet;
@@ -41,7 +42,7 @@ public class BuildDestinationPorts implements Runnable {
 							.project("ship_id,depart_port,dest_port")
 							.store("tmp/result")
 							.build();
-			DataSet result = m_marmot.createDataSet("tmp/result", plan, true);
+			DataSet result = m_marmot.createDataSet("tmp/result", plan, DataSetOption.FORCE);
 			try ( RecordSet rset = result.read();
 				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
 				String header = rset.getRecordSchema()

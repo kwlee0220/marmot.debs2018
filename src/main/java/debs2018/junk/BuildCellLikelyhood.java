@@ -9,6 +9,7 @@ import com.vividsolutions.jts.geom.Envelope;
 
 import debs2018.Globals;
 import marmot.DataSet;
+import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.geo.CoordinateTransform;
@@ -54,7 +55,7 @@ public class BuildCellLikelyhood implements Runnable {
 								.project("x,y,departure_port,arrival_port_calc,mass")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, true);
+			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, DataSetOption.FORCE);
 			
 			DebsUtils.printPrefix(ds, 100);
 		}
