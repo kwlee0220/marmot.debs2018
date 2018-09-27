@@ -1,5 +1,8 @@
 package debs2018.junk;
 
+import static marmot.DataSetOption.FORCE;
+import static marmot.DataSetOption.GEOMETRY;
+
 import java.time.Duration;
 
 import org.apache.hadoop.conf.Configured;
@@ -10,6 +13,7 @@ import org.apache.log4j.PropertyConfigurator;
 import debs2018.Globals;
 import marmot.DataSet;
 import marmot.DataSetOption;
+import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.plan.RecordScript;
@@ -46,9 +50,9 @@ public class DrawSingleShipTravel implements Runnable {
 								.expand("ts:long", RecordScript.of(initExpr, expr))
 								.project(prjExpr)
 								.build();
-			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",
-													input.getGeometryColumnInfo(),
-													plan, DataSetOption.FORCE);
+			GeometryColumnInfo gcInfo = input.getGeometryColumnInfo();
+			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",plan,
+													GEOMETRY(gcInfo), FORCE);
 			
 			RecordSets.observe(result.read())
 				.buffer(2,1)

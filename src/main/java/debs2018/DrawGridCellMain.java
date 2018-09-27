@@ -1,11 +1,13 @@
 package debs2018;
 
+import static marmot.DataSetOption.FORCE;
+import static marmot.DataSetOption.GEOMETRY;
+
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
@@ -38,8 +40,8 @@ public class DrawGridCellMain implements Runnable {
 								.loadSquareGridFile(new SquareGrid(Globals.BOUNDS, cellSize), -1)
 								.store(RESULT)
 								.build();
-			GeometryColumnInfo info = new GeometryColumnInfo("the_geom", "EPSG:4326");
-			m_marmot.createDataSet(RESULT, info, plan, DataSetOption.FORCE);
+			GeometryColumnInfo gcInfo = new GeometryColumnInfo("the_geom", "EPSG:4326");
+			m_marmot.createDataSet(RESULT, plan, GEOMETRY(gcInfo), FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

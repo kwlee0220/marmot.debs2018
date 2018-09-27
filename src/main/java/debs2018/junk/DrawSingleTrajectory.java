@@ -1,5 +1,8 @@
 package debs2018.junk;
 
+import static marmot.DataSetOption.FORCE;
+import static marmot.DataSetOption.GEOMETRY;
+
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -7,7 +10,6 @@ import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
 import marmot.DataSet;
-import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
@@ -36,9 +38,9 @@ public class DrawSingleTrajectory implements Runnable {
 //								.distinct("cell_id")
 								.store("tmp/single_line")
 								.build();
-			DataSet result = m_marmot.createDataSet("tmp/single_line",
-													new GeometryColumnInfo("the_geom", "EPSG:4326"),
-													plan, DataSetOption.FORCE);
+			GeometryColumnInfo gcInfo = new GeometryColumnInfo("the_geom", "EPSG:4326");
+			DataSet result = m_marmot.createDataSet("tmp/single_line", plan,
+													GEOMETRY(gcInfo), FORCE);
 			
 			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
 			DebsUtils.printPrefix(result, 5);
