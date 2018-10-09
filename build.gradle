@@ -16,10 +16,6 @@ repositories {
 		url "http://download.osgeo.org/webdav/geotools/"
 	}
     mavenCentral()
-    maven {
-    	name = 'dist'
-    	url = "file:${distRepositoryDir}"
-    }
 }
 
 dependencies {
@@ -71,20 +67,6 @@ artifacts {
 	archives sourceJar
 	archives javadocJar
 	archives shadowJar
-}
-
-uploadArchives {
-	repositories {
-		mavenDeployer {
-			repository(url: "file:${distRepositoryDir}")
-		}
-	}
-}
-
-task copyJarToBin(type: Copy) {
-	dependsOn 'shadowJar'
-	from "${buildDir}/libs/${archivesBaseName}-${version}-all.jar"
-	into 'bin'
 }
 
 apply plugin: 'eclipse'

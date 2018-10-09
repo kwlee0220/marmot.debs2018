@@ -1,15 +1,9 @@
 rootProject.name = 'marmot.debs2018'
 
-def commonDir = file('../../../common')
-['utils'].each {
-	include ":$it"
-	project(":$it").projectDir = file("$commonDir/$it")
-}
 
-def marmotDir = file('../..')
-['marmot.client', 'marmot'].each {
+['utils', 'marmot.common', 'marmot'].each {
 	include ":$it"
-	project(":$it").projectDir = file("$marmotDir/$it")
+	project(":$it").projectDir = file("../$it")
 }
 
 def miscDir = file('../../../misc')
