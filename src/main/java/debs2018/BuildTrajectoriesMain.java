@@ -8,7 +8,7 @@ import org.apache.log4j.PropertyConfigurator;
 import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
-import marmot.plan.RecordScript;
+import marmot.RecordScript;
 import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;

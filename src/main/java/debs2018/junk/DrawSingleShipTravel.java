@@ -16,7 +16,7 @@ import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
-import marmot.plan.RecordScript;
+import marmot.RecordScript;
 import marmot.rset.RecordSets;
 import utils.CommandLine;
 import utils.CommandLineParser;
