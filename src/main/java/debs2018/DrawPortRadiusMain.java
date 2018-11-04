@@ -33,7 +33,7 @@ public class DrawPortRadiusMain implements Runnable {
 		try {
 			Plan plan = m_marmot.planBuilder("draw_port_radius")
 								.load("debs/ports")
-								.transformCrs("the_geom", "EPSG:4326", "EPSG:3857", "the_geom")
+								.transformCrs("the_geom", "EPSG:4326", "EPSG:3857")
 								.expand("region:polygon", "region = ST_Buffer(the_geom, radius)")
 								.project("region as the_geom, port_name, radius")
 								.store(RESULT)
