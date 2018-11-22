@@ -69,7 +69,7 @@ public class AdjustShipParking implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalhost();
+			MarmotServer marmot = MarmotServer.initializeForLocalMR();
 			new AdjustShipParking(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

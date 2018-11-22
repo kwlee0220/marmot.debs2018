@@ -82,7 +82,7 @@ public class ExportGridCellAsCsv implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalhost();
+			MarmotServer marmot = MarmotServer.initializeForLocalMR();
 			new ExportGridCellAsCsv(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

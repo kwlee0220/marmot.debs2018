@@ -84,7 +84,7 @@ public class DrawSingleShipTravel implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalhost();
+			MarmotServer marmot = MarmotServer.initializeForLocalMR();
 			new DrawSingleShipTravel(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
