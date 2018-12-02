@@ -80,7 +80,6 @@ public class BuildHistogram implements Runnable {
 		public int run(String[] args) throws Exception {
 			try {
 				MarmotServer marmot = MarmotServer.initialize(getConf());
-				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
 				new BuildHistogram(marmot).run();

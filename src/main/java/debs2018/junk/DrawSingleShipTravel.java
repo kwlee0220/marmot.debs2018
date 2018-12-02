@@ -12,7 +12,6 @@ import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
 import marmot.DataSet;
-import marmot.DataSetOption;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
@@ -96,7 +95,6 @@ public class DrawSingleShipTravel implements Runnable {
 		public int run(String[] args) throws Exception {
 			try {
 				MarmotServer marmot = MarmotServer.initialize(getConf());
-				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
 				new DrawSingleShipTravel(marmot).run();

@@ -94,7 +94,6 @@ public class ExportGridCellAsCsv implements Runnable {
 		public int run(String[] args) throws Exception {
 			try {
 				MarmotServer marmot = MarmotServer.initialize(getConf());
-				marmot.setMapOutputCompression(true);
 
 				StopWatch watch = StopWatch.start();
 				new ExportGridCellAsCsv(marmot).run();
