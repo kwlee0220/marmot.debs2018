@@ -30,6 +30,7 @@ import plaslab.debs2018.ShipTrack;
 import plaslab.debs2018.gridcell.Point2f;
 import plaslab.debs2018.support.UnitUtils;
 import plaslab.debs2018.support.Utilities;
+import utils.func.FOption;
 import utils.stream.FStream;
 
 /**
@@ -131,7 +132,7 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 		return shrinkeds;
 	}
 	
-	private Option<ShipTrackX> extend(List<ShipTrack> pair) {
+	private FOption<ShipTrackX> extend(List<ShipTrack> pair) {
 		if ( pair.size() == 2 ) {
 			ShipTrack prev = pair.get(0);
 			ShipTrack track = pair.get(1);
@@ -140,10 +141,10 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 			long elapsed = track.timestamp() - prev.timestamp();
 			double velo = (dist * 60 * 60) / elapsed;
 			
-			return Option.some(new ShipTrackX(track, velo, elapsed));
+			return FOption.of(new ShipTrackX(track, velo, elapsed));
 		}
 		else {
-			return Option.none();
+			return FOption.empty();
 		}
 	}
 	
