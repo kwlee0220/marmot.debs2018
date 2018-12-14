@@ -42,7 +42,7 @@ public class BuildTrajectoriesMain implements Runnable {
 								.expand("ts:long", RecordScript.of(initExpr, expr))
 								.project(prjExpr)
 								.groupBy("ship_id")
-									.tagWith("ship_type")
+									.withTags("ship_type")
 									.orderBy("ts:A")
 									.apply(PBUtils.serializeJava(trjGen))
 								.filter("departure_port != null")

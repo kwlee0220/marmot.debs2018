@@ -49,7 +49,7 @@ public class BuildCellLikelyhood implements Runnable {
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
 								.expand("mass:double", "mass = 1 / ST_Distance(the_geom,the_geom2)")
 								.groupBy("cell_id,departure_port,arrival_port_calc")
-									.tagWith("cell_pos")
+									.withTags("cell_pos")
 									.aggregate(AggregateFunction.SUM("mass").as("mass"))
 								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,departure_port,arrival_port_calc,mass")

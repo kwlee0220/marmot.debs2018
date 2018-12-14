@@ -55,7 +55,7 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 							.expand("remains_millis:long", getRemainingTime)
 							.expand("speed:int", "speed = Math.round(speed)")
 							.groupBy("cell_id,arrival_port_calc,speed")
-								.tagWith("cell_pos")
+								.withTags("cell_pos")
 								.aggregate(AVG("remains_millis"), COUNT())
 							.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 							.expand("remains_millis:long", "remains_millis = Math.round(avg)")

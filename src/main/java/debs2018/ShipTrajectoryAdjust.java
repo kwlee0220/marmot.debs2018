@@ -21,7 +21,6 @@ import marmot.RecordSet;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.rset.KeyedRecordSet;
 import marmot.optor.support.AbstractRecordSetFunction;
-import marmot.rset.RecordSets;
 import marmot.support.DefaultRecord;
 import marmot.type.DataType;
 import plaslab.debs2018.Port;
@@ -95,7 +94,7 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 		return trim(shipId, departPort, arrivalPort, tracks)
 				.map(trks -> dropParkingTracks(shipId, departPort, arrivalPort, trks))
 				.map(trks -> toRecordSet(departPort, arrivalPort, trks))
-				.getOrElse(RecordSets.empty(SCHEMA));
+				.getOrElse(RecordSet.empty(SCHEMA));
 	}
 	
 	private List<ShipTrack> dropParkingTracks(String shipId, String departPort,
@@ -226,7 +225,7 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 								List<ShipTrack> tracks) {
 		ShipTrack last = tracks.get(tracks.size()-1);
 		
-		return RecordSets.from(SCHEMA, FStream.of(tracks)
+		return RecordSet.from(SCHEMA, FStream.of(tracks)
 									.map(track -> toRecord("", departPort, last.timestamp(),
 															arrivalPort, track)));
 	}

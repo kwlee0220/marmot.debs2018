@@ -39,7 +39,7 @@ public class BuildGradientHistogramMain implements Runnable {
 								.load(Globals.SHIP_TRACKS_LABELED)
 								.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
 								.groupBy("cell_id,gradient,arrival_port_calc")
-									.tagWith("cell_pos")
+									.withTags("cell_pos")
 									.aggregate(COUNT().as("count"))
 								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,gradient,arrival_port_calc,count")

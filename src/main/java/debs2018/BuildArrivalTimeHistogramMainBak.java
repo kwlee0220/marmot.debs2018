@@ -54,7 +54,7 @@ public class BuildArrivalTimeHistogramMainBak implements Runnable {
 							.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
 							.expand("remains_millis:long", getRemainingTime)
 							.groupBy("cell_id,arrival_port_calc,ship_type")
-								.tagWith("cell_pos")
+								.withTags("cell_pos")
 								.aggregate(AVG("remains_millis"),COUNT())
 							.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 							.expand("remains_millis:long", "remains_millis = Math.round(avg)")

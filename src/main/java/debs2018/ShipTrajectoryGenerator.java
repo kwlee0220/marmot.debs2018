@@ -115,7 +115,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 					.map(track -> toRecord(trajId, traj.leavingPort(), arrivalTs,
 											arrivalPort, track));
 		
-		return RecordSets.from(SCHEMA, trace);
+		return RecordSet.from(SCHEMA, trace);
 	}
 	
 	private Maybe<ShipTrajectory> trim(ShipTrajectory traj) {
