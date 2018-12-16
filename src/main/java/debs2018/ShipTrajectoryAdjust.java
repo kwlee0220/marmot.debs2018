@@ -252,11 +252,11 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 	private ShipTrack toShiptrack(String shipId, String departPort, String arrivalPort, Record record) {
 		Point geom = (Point)record.getGeometry("the_geom");
 		Point2f loc = new Point2f((float)geom.getX(), (float)geom.getY());
-		byte shipType = record.getByte("ship_type", (byte)-1);
-		float speed = record.getFloat("speed", (float)-1f);
-		short course = record.getShort("course", (short)-1);
-		short heading = record.getShort("heading", (short)-1);
-		long ts = record.getLong("ts", (long)-1);
+		byte shipType = record.getByte("ship_type");
+		float speed = record.getFloat("speed");
+		short course = record.getShort("course");
+		short heading = record.getShort("heading");
+		long ts = record.getLong("ts");
 		
 		return new ShipTrack(departPort, shipId, shipType, loc, speed,
 							course, heading, ts)

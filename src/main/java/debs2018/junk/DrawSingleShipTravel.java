@@ -56,7 +56,7 @@ public class DrawSingleShipTravel implements Runnable {
 			RecordSets.observe(result.read())
 				.buffer(2,1)
 				.filter(l -> l.size() >= 2)
-				.map(l -> Duration.ofMillis(l.get(1).getLong("ts", -1) - l.get(0).getLong("ts", -1)))
+				.map(l -> Duration.ofMillis(l.get(1).getLong("ts") - l.get(0).getLong("ts")))
 				.map(d -> d.toHours())
 				.filter(h -> h > 2)
 				.subscribe(System.out::println);

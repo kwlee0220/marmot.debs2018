@@ -265,10 +265,10 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		Point geom = (Point)record.getGeometry("the_geom");
 		Point2f loc = new Point2f((float)geom.getX(), (float)geom.getY());
 		String departPort = record.getString("departure_port");
-		float speed = record.getFloat("speed", (float)-1f);
-		short course = record.getShort("course", (short)-1);
-		short heading = record.getShort("heading", (short)-1);
-		long ts = record.getLong("ts", (long)-1);
+		float speed = record.getFloat("speed");
+		short course = record.getShort("course");
+		short heading = record.getShort("heading");
+		long ts = record.getLong("ts");
 		
 		return new ShipTrack(departPort, shipId, shipType, loc, speed,
 							course, heading, ts);
