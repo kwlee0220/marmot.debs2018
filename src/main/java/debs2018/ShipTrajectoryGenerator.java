@@ -37,6 +37,7 @@ import plaslab.debs2018.ShipTrack;
 import plaslab.debs2018.gridcell.Point2f;
 import plaslab.debs2018.gridcell.train.ShipTrajectory;
 import plaslab.debs2018.gridcell.train.ShipTrajectoryDetector;
+import utils.react.Observables;
 import utils.stream.FStream;
 
 /**
@@ -77,9 +78,9 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		String shipId = (String)group.getKey().getValueAt(0);
 		byte shipType = (byte)group.getKey().getValueAt(1);
 		
-		Observable<ShipTrack> tracks = group.fstream()
-											.map(r -> toShiptrack(shipId, shipType, r))
-											.observe();
+		FStream<ShipTrack> strm = group.fstream()
+											.map(r -> toShiptrack(shipId, shipType, r));
+		Observable<ShipTrack> tracks = Observables.from(strm);
 		
 		List<RecordSet> rsetList = ShipTrajectoryDetector.detect(shipId, tracks)
 														.flatMapMaybe(this::trim)
