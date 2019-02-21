@@ -112,7 +112,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		long arrivalTs = last.timestamp();
 		String arrivalPort = traj.arrivalPortCalc().get();
 		FStream<Record> trace
-			= FStream.of(traj.getTrackAll())
+			= FStream.from(traj.getTrackAll())
 					.map(track -> toRecord(trajId, traj.leavingPort(), arrivalTs,
 											arrivalPort, track));
 		
@@ -198,7 +198,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		Collections.reverse(tracks);
 		
 		List<ShipTrack> trace
-			= FStream.of(tracks)
+			= FStream.from(tracks)
 					.map(track ->
 						new ShipTrack(track.taskId(), arrivalPort, track.shipId(),
 									track.shipType(), track.location(), track.speed(),

@@ -51,7 +51,7 @@ public class BuildDestinationPorts implements Runnable {
 									.join(",", "#", "");
 				pw.println(header);
 				
-				rset.stream()
+				rset.fstream()
 					.map(rec -> Arrays.stream(rec.getAll())
 										.map(Object::toString)
 										.collect(Collectors.joining(",")))

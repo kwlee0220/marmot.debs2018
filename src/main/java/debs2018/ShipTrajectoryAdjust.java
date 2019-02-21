@@ -104,7 +104,7 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 		
 		List<ShipTrack> shrinkeds = FStream.of(first)
 				.map(track -> new ShipTrackX(track, 100, 0))
-				.concatWith(FStream.of(tracks)
+				.concatWith(FStream.from(tracks)
 									.buffer(2, 1)
 									.flatMapOption(pair -> extend(pair)))
 				.scan((t1,t2) -> {
@@ -225,7 +225,7 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 								List<ShipTrack> tracks) {
 		ShipTrack last = tracks.get(tracks.size()-1);
 		
-		return RecordSet.from(SCHEMA, FStream.of(tracks)
+		return RecordSet.from(SCHEMA, FStream.from(tracks)
 									.map(track -> toRecord("", departPort, last.timestamp(),
 															arrivalPort, track)));
 	}
