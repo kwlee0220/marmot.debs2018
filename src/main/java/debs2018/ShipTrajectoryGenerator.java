@@ -78,7 +78,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		String shipId = (String)group.getKey().getValueAt(0);
 		byte shipType = (byte)group.getKey().getValueAt(1);
 		
-		FStream<ShipTrack> strm = group.fstream()
+		FStream<ShipTrack> strm = group.stream()
 											.map(r -> toShiptrack(shipId, shipType, r));
 		Observable<ShipTrack> tracks = Observables.from(strm);
 		

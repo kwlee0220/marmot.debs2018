@@ -46,12 +46,12 @@ public class BuildDestinationPorts implements Runnable {
 			try ( RecordSet rset = result.read();
 				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
 				String header = rset.getRecordSchema()
-									.getColumnStream()
+									.streamColumns()
 									.map(Column::name)
 									.join(",", "#", "");
 				pw.println(header);
 				
-				rset.fstream()
+				rset.stream()
 					.map(rec -> Arrays.stream(rec.getAll())
 										.map(Object::toString)
 										.collect(Collectors.joining(",")))

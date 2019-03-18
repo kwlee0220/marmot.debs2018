@@ -56,12 +56,12 @@ public class ExportGridCellAsCsv implements Runnable {
 		try ( RecordSet rset = grid.read();
 			PrintWriter pw = new PrintWriter(new FileWriter(csvFile)) ) {
 			String header = rset.getRecordSchema()
-								.getColumnStream()
+								.streamColumns()
 								.map(Column::name)
 								.join(",", "#", "");
 			pw.println(header);
 			
-			rset.fstream()
+			rset.stream()
 				.map(rec -> Arrays.stream(rec.getAll())
 									.map(Object::toString)
 									.collect(Collectors.joining(",")))
