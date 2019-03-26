@@ -45,6 +45,7 @@ public class BuildTrajectoriesMain implements Runnable {
 									.withTags("ship_type")
 									.orderBy("ts:A")
 									.apply(PBUtils.serializeJava(trjGen))
+									.list()
 								.filter("departure_port != null")
 								.store(Globals.SHIP_TRACKS_LABELED)
 								.build();
