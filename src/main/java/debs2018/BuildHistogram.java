@@ -39,7 +39,7 @@ public class BuildHistogram implements Runnable {
 								.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
 								.groupBy("traj_id,cell_id")
 									.withTags("cell_pos,departure_port,arrival_port_calc,ship_type")
-									.findFirst()
+									.take(1)
 								.groupBy("cell_id,departure_port,arrival_port_calc,ship_type")
 									.withTags("cell_pos")
 									.aggregate(COUNT().as("count"))

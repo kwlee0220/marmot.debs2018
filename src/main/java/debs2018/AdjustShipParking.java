@@ -45,8 +45,7 @@ public class AdjustShipParking implements Runnable {
 								.expand("arrival_calc:long", RecordScript.of(initExpr, expr2))
 								.groupBy("ship_id,departure_port,arrival_port_calc")
 									.orderBy("ts:A")
-									.apply(PBUtils.serializeJava(adjust))
-									.list()
+									.apply(adjust)
 								.store(Globals.SHIP_TRACKS_TIME_ADJUST)
 								.build();
 			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, DataSetOption.FORCE);

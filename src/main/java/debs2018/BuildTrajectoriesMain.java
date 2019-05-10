@@ -9,7 +9,6 @@ import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
-import marmot.protobuf.PBUtils;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -44,8 +43,7 @@ public class BuildTrajectoriesMain implements Runnable {
 								.groupBy("ship_id")
 									.withTags("ship_type")
 									.orderBy("ts:A")
-									.apply(PBUtils.serializeJava(trjGen))
-									.list()
+									.apply(trjGen)
 								.filter("departure_port != null")
 								.store(Globals.SHIP_TRACKS_LABELED)
 								.build();
