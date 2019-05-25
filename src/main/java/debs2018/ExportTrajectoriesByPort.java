@@ -19,11 +19,11 @@ import com.google.common.collect.Maps;
 import io.vavr.Tuple;
 import io.vavr.control.Try;
 import marmot.DataSet;
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.Record;
 import marmot.RecordSet;
+import marmot.StoreDataSetOptions;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -55,7 +55,7 @@ public class ExportTrajectoriesByPort implements Runnable {
 						.distinct("departure_port,arrival_port_calc,ship_id")
 						.store("tmp/result")
 						.build();
-		DataSet output = m_marmot.createDataSet("tmp/result", plan, DataSetOption.FORCE);
+		DataSet output = m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.create().force(true));
 		Map<String,List<String>> port2port;
 		try ( RecordSet rset = output.read() ) {
 			port2port = rset.stream()

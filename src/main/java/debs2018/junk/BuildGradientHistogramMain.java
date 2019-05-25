@@ -8,9 +8,9 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
 import utils.CommandLine;
@@ -37,7 +37,7 @@ public class BuildGradientHistogramMain implements Runnable {
 			
 			Plan plan = m_marmot.planBuilder("tag_gradient")
 								.load(Globals.SHIP_TRACKS_LABELED)
-								.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
+								.assignGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize), false)
 								.groupBy("cell_id,gradient,arrival_port_calc")
 									.withTags("cell_pos")
 									.aggregate(COUNT().as("count"))
@@ -45,7 +45,7 @@ public class BuildGradientHistogramMain implements Runnable {
 								.project("x,y,gradient,arrival_port_calc,count")
 								.store("tmp/result")
 								.build();
-			m_marmot.createDataSet("tmp/result", plan, DataSetOption.FORCE);
+			m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.create().force(true));
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

@@ -7,9 +7,9 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
 import utils.CommandLine;
@@ -36,7 +36,7 @@ public class BuildHistogram implements Runnable {
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
 								.load(Globals.SHIP_TRACKS_LABELED)
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
-								.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
+								.assignGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize), false)
 								.groupBy("traj_id,cell_id")
 									.withTags("cell_pos,departure_port,arrival_port_calc,ship_type")
 									.take(1)
@@ -47,7 +47,7 @@ public class BuildHistogram implements Runnable {
 								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, DataSetOption.FORCE);
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, StoreDataSetOptions.create().force(true));
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

@@ -1,8 +1,5 @@
 package debs2018;
 
-import static marmot.DataSetOption.FORCE;
-import static marmot.DataSetOption.GEOMETRY;
-
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -11,6 +8,7 @@ import org.apache.log4j.PropertyConfigurator;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.StoreDataSetOptions;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -39,7 +37,7 @@ public class DrawPortRadiusMain implements Runnable {
 								.store(RESULT)
 								.build();
 			GeometryColumnInfo gcInfo = new GeometryColumnInfo("the_geom", "EPSG:3857");
-			m_marmot.createDataSet(RESULT, plan, GEOMETRY(gcInfo), FORCE);
+			m_marmot.createDataSet(RESULT, plan, StoreDataSetOptions.create().geometryColumnInfo(gcInfo).force(true));
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

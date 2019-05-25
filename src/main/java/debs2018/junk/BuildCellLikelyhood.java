@@ -9,14 +9,14 @@ import com.vividsolutions.jts.geom.Envelope;
 
 import debs2018.Globals;
 import marmot.DataSet;
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
+import marmot.StoreDataSetOptions;
 import marmot.geo.CoordinateTransform;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.AggregateFunction;
 import marmot.optor.geo.SquareGrid;
-import marmot.plan.GeomOpOption;
+import marmot.plan.GeomOpOptions;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -41,9 +41,9 @@ public class BuildCellLikelyhood implements Runnable {
 			Size2d cellSize = GeoClientUtils.divide(bounds, Globals.RESOLUTION);
 			
 			Plan plan = m_marmot.planBuilder("build_ship_trajectory")
-								.loadSquareGridFile(new SquareGrid(bounds, cellSize), -1)
+								.loadGrid(new SquareGrid(bounds, cellSize), -1)
 								.centroid("the_geom")
-								.buffer("the_geom", Globals.RADIUS, GeomOpOption.OUTPUT("circle"))
+								.buffer("the_geom", Globals.RADIUS, GeomOpOptions.create().outputColumn("circle"))
 								.spatialJoin("circle", Globals.SHIP_TRACKS_LABELED,
 											"*-{circle},param.{the_geom as the_geom2,departure_port,arrival_port_calc}")
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
@@ -55,7 +55,7 @@ public class BuildCellLikelyhood implements Runnable {
 								.project("x,y,departure_port,arrival_port_calc,mass")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, DataSetOption.FORCE);
+			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, StoreDataSetOptions.create().force(true));
 			
 			DebsUtils.printPrefix(ds, 100);
 		}

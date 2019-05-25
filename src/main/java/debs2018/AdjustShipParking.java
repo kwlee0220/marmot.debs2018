@@ -5,11 +5,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
-import marmot.protobuf.PBUtils;
+import marmot.StoreDataSetOptions;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -48,7 +47,7 @@ public class AdjustShipParking implements Runnable {
 									.apply(adjust)
 								.store(Globals.SHIP_TRACKS_TIME_ADJUST)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, DataSetOption.FORCE);
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, StoreDataSetOptions.create().force(true));
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

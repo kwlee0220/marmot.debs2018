@@ -8,10 +8,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
+import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
 import utils.CommandLine;
@@ -51,7 +51,7 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 							.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
 							.expand("ts:long", RecordScript.of(initExpr, expr))
 							.expand("arrival_calc:long", RecordScript.of(initExpr, expr2))
-							.assignSquareGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize))
+							.assignGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize), false)
 							.expand("remains_millis:long", getRemainingTime)
 							.expand("speed:int", "speed = Math.round(speed)")
 							.groupBy("cell_id,arrival_port_calc,speed")
@@ -62,7 +62,8 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 							.project("x,y,arrival_port_calc,speed,remains_millis,count")
 							.store(Globals.SHIP_GRID_CELLS_TIME)
 							.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan, DataSetOption.FORCE);
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan,
+									StoreDataSetOptions.create().force(true));
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

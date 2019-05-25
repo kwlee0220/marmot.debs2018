@@ -5,10 +5,10 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
-import marmot.DataSetOption;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
+import marmot.StoreDataSetOptions;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -47,7 +47,7 @@ public class BuildTrajectoriesMain implements Runnable {
 								.filter("departure_port != null")
 								.store(Globals.SHIP_TRACKS_LABELED)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_LABELED, plan, DataSetOption.FORCE);
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_LABELED, plan, StoreDataSetOptions.create().force(true));
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
