@@ -12,6 +12,7 @@ import marmot.Plan;
 import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
+import marmot.plan.Group;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -37,12 +38,11 @@ public class BuildHistogram implements Runnable {
 								.load(Globals.SHIP_TRACKS_LABELED)
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
 								.assignGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize), false)
-								.groupBy("traj_id,cell_id")
-									.withTags("cell_pos,departure_port,arrival_port_calc,ship_type")
-									.take(1)
-								.groupBy("cell_id,departure_port,arrival_port_calc,ship_type")
-									.withTags("cell_pos")
-									.aggregate(COUNT().as("count"))
+								.takeByGroup(Group.ofKeys("traj_id,cell_id")
+												.tags("cell_pos,departure_port,arrival_port_calc,ship_type"), 1)
+								.aggregateByGroup(Group.ofKeys("cell_id,departure_port,arrival_port_calc,ship_type")
+														.withTags("cell_pos"),
+													COUNT().as("count"))
 								.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
 								.store(Globals.SHIP_GRID_CELLS)

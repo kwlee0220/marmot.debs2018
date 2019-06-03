@@ -9,6 +9,7 @@ import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
 import marmot.StoreDataSetOptions;
+import marmot.plan.Group;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -42,9 +43,9 @@ public class AdjustShipParking implements Runnable {
 								.filter("arrival_port_calc != null && arrival_port_calc.length() > 0 ")
 								.expand("ts:long", RecordScript.of(initExpr, expr))
 								.expand("arrival_calc:long", RecordScript.of(initExpr, expr2))
-								.groupBy("ship_id,departure_port,arrival_port_calc")
-									.orderBy("ts:A")
-									.apply(adjust)
+								.applyByGroup(Group.ofKeys("ship_id,departure_port,arrival_port_calc")
+													.orderBy("ts:A"),
+												adjust)
 								.store(Globals.SHIP_TRACKS_TIME_ADJUST)
 								.build();
 			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, StoreDataSetOptions.create().force(true));

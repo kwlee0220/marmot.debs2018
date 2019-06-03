@@ -9,6 +9,7 @@ import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
 import marmot.StoreDataSetOptions;
+import marmot.plan.Group;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -40,10 +41,8 @@ public class BuildTrajectoriesMain implements Runnable {
 								.load(Globals.SHIP_TRACKS)
 								.expand("ts:long", RecordScript.of(initExpr, expr))
 								.project(prjExpr)
-								.groupBy("ship_id")
-									.withTags("ship_type")
-									.orderBy("ts:A")
-									.apply(trjGen)
+								.applyByGroup(Group.ofKeys("ship_id").tags("ship_type").orderBy("ts:A"),
+												trjGen)
 								.filter("departure_port != null")
 								.store(Globals.SHIP_TRACKS_LABELED)
 								.build();

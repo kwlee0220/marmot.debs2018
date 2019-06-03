@@ -14,6 +14,7 @@ import marmot.RecordScript;
 import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
+import marmot.plan.Group;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.Size2d;
@@ -54,9 +55,9 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 							.assignGridCell("the_geom", new SquareGrid(Globals.BOUNDS, cellSize), false)
 							.expand("remains_millis:long", getRemainingTime)
 							.expand("speed:int", "speed = Math.round(speed)")
-							.groupBy("cell_id,arrival_port_calc,speed")
-								.withTags("cell_pos")
-								.aggregate(AVG("remains_millis"), COUNT())
+							.aggregateByGroup(Group.ofKeys("cell_id,arrival_port_calc,speed")
+													.withTags("cell_pos"),
+												AVG("remains_millis"), COUNT())
 							.expand("x:int,y:int", "x = cell_pos.x; y=cell_pos.y;")
 							.expand("remains_millis:long", "remains_millis = Math.round(avg)")
 							.project("x,y,arrival_port_calc,speed,remains_millis,count")
