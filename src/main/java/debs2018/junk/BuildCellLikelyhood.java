@@ -56,7 +56,7 @@ public class BuildCellLikelyhood implements Runnable {
 								.project("x,y,departure_port,arrival_port_calc,mass")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, StoreDataSetOptions.create().force(true));
+			DataSet ds = m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, StoreDataSetOptions.FORCE);
 			
 			DebsUtils.printPrefix(ds, 100);
 		}

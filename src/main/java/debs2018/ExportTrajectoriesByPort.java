@@ -55,10 +55,10 @@ public class ExportTrajectoriesByPort implements Runnable {
 						.distinct("departure_port,arrival_port_calc,ship_id")
 						.store("tmp/result")
 						.build();
-		DataSet output = m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.create().force(true));
+		DataSet output = m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.FORCE);
 		Map<String,List<String>> port2port;
 		try ( RecordSet rset = output.read() ) {
-			port2port = rset.stream()
+			port2port = rset.fstream()
 						.map(r -> Tuple.of(r.getString(0), r.getString(1), r.getString(2)))
 						.collectLeft(Maps.newHashMap(), (m,t) -> 
 									m.computeIfAbsent(t._1, k-> Lists.newArrayList())

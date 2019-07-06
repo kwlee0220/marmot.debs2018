@@ -46,7 +46,7 @@ public class BuildTrajectoriesMain implements Runnable {
 								.filter("departure_port != null")
 								.store(Globals.SHIP_TRACKS_LABELED)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_LABELED, plan, StoreDataSetOptions.create().force(true));
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_LABELED, plan, StoreDataSetOptions.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

@@ -88,7 +88,7 @@ public class ShipTrajectoryAdjust extends AbstractRecordSetFunction
 		String departPort = (String)key.getValueAt(1);
 		String arrivalPort = (String)key.getValueAt(2);
 		
-		List<ShipTrack> tracks = group.stream()
+		List<ShipTrack> tracks = group.fstream()
 									.map(r -> toShiptrack(shipId, departPort, arrivalPort, r))
 									.toList();
 		return trim(shipId, departPort, arrivalPort, tracks)

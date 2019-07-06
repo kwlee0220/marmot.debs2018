@@ -62,7 +62,7 @@ public class BuildArrivalTimeHistogramMainBak implements Runnable {
 							.project("x,y,arrival_port_calc,ship_type,remains_millis,count")
 							.store(Globals.SHIP_GRID_CELLS_TIME)
 							.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan, StoreDataSetOptions.create().force(true));
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan, StoreDataSetOptions.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

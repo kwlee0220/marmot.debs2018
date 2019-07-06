@@ -28,7 +28,6 @@ import marmot.geo.GeoClientUtils;
 import marmot.geo.GeoUtils;
 import marmot.optor.rset.KeyedRecordSet;
 import marmot.optor.support.AbstractRecordSetFunction;
-import marmot.rset.RecordSets;
 import marmot.support.DefaultRecord;
 import marmot.type.DataType;
 import plaslab.debs2018.Port;
@@ -78,7 +77,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 		String shipId = (String)group.getKey().getValueAt(0);
 		byte shipType = (byte)group.getKey().getValueAt(1);
 		
-		FStream<ShipTrack> strm = group.stream()
+		FStream<ShipTrack> strm = group.fstream()
 											.map(r -> toShiptrack(shipId, shipType, r));
 		Observable<ShipTrack> tracks = Observables.from(strm);
 		
@@ -87,7 +86,7 @@ public class ShipTrajectoryGenerator extends AbstractRecordSetFunction
 														.map(this::toRecordSet)
 														.toList()
 														.blockingGet();
-		return RecordSets.concat(rsetList.get(0).getRecordSchema(), rsetList);
+		return RecordSet.concat(rsetList);
 	}
 	
 //	private RecordSet toRecordSetPair(ShipTrajectory traj) {

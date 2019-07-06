@@ -46,7 +46,7 @@ public class BuildGradientHistogramMain implements Runnable {
 								.project("x,y,gradient,arrival_port_calc,count")
 								.store("tmp/result")
 								.build();
-			m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.create().force(true));
+			m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

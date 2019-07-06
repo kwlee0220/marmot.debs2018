@@ -1,5 +1,7 @@
 package debs2018.junk;
 
+import static marmot.StoreDataSetOptions.FORCE;
+
 import java.time.Duration;
 
 import org.apache.hadoop.conf.Configured;
@@ -13,8 +15,6 @@ import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
-import marmot.StoreDataSetOptions;
-import marmot.rset.RecordSets;
 import utils.CommandLine;
 import utils.CommandLineParser;
 import utils.StopWatch;
@@ -48,16 +48,15 @@ public class DrawSingleShipTravel implements Runnable {
 								.project(prjExpr)
 								.build();
 			GeometryColumnInfo gcInfo = input.getGeometryColumnInfo();
-			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",plan,
-													StoreDataSetOptions.create().geometryColumnInfo(gcInfo).force(true));
+			DataSet result = m_marmot.createDataSet("tmp/single_ship_trip",plan, FORCE(gcInfo));
 			
-			RecordSets.observe(result.read())
-				.buffer(2,1)
-				.filter(l -> l.size() >= 2)
-				.map(l -> Duration.ofMillis(l.get(1).getLong("ts") - l.get(0).getLong("ts")))
-				.map(d -> d.toHours())
-				.filter(h -> h > 2)
-				.subscribe(System.out::println);
+			result.read().observe()
+					.buffer(2,1)
+					.filter(l -> l.size() >= 2)
+					.map(l -> Duration.ofMillis(l.get(1).getLong("ts") - l.get(0).getLong("ts")))
+					.map(d -> d.toHours())
+					.filter(h -> h > 2)
+					.subscribe(System.out::println);
 			
 			// 결과에 포함된 일부 레코드를 읽어 화면에 출력시킨다.
 			DebsUtils.printPrefix(result, 5);

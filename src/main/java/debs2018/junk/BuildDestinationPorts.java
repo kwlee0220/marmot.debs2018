@@ -42,7 +42,7 @@ public class BuildDestinationPorts implements Runnable {
 							.project("ship_id,depart_port,dest_port")
 							.store("tmp/result")
 							.build();
-			DataSet result = m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.create().force(true));
+			DataSet result = m_marmot.createDataSet("tmp/result", plan, StoreDataSetOptions.FORCE);
 			try ( RecordSet rset = result.read();
 				PrintWriter pw = new PrintWriter(new FileWriter("answer.csv")) ) {
 				String header = rset.getRecordSchema()
@@ -51,7 +51,7 @@ public class BuildDestinationPorts implements Runnable {
 									.join(",", "#", "");
 				pw.println(header);
 				
-				rset.stream()
+				rset.fstream()
 					.map(rec -> Arrays.stream(rec.getAll())
 										.map(Object::toString)
 										.collect(Collectors.joining(",")))

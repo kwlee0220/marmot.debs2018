@@ -1,5 +1,7 @@
 package debs2018;
 
+import static marmot.StoreDataSetOptions.FORCE;
+
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
@@ -8,7 +10,6 @@ import org.apache.log4j.PropertyConfigurator;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
-import marmot.StoreDataSetOptions;
 import marmot.plan.Group;
 import utils.CommandLine;
 import utils.CommandLineParser;
@@ -48,7 +49,7 @@ public class AdjustShipParking implements Runnable {
 												adjust)
 								.store(Globals.SHIP_TRACKS_TIME_ADJUST)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, StoreDataSetOptions.create().force(true));
+			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

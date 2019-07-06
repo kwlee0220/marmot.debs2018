@@ -1,5 +1,6 @@
 package debs2018;
 
+import static marmot.StoreDataSetOptions.FORCE;
 import static marmot.optor.AggregateFunction.AVG;
 import static marmot.optor.AggregateFunction.COUNT;
 
@@ -11,7 +12,6 @@ import org.apache.log4j.PropertyConfigurator;
 import marmot.MarmotServer;
 import marmot.Plan;
 import marmot.RecordScript;
-import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
 import marmot.plan.Group;
@@ -63,8 +63,7 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 							.project("x,y,arrival_port_calc,speed,remains_millis,count")
 							.store(Globals.SHIP_GRID_CELLS_TIME)
 							.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan,
-									StoreDataSetOptions.create().force(true));
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS_TIME, plan, FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);

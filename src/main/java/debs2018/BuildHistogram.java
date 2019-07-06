@@ -47,7 +47,7 @@ public class BuildHistogram implements Runnable {
 								.project("x,y,departure_port,arrival_port_calc,ship_type,count")
 								.store(Globals.SHIP_GRID_CELLS)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, StoreDataSetOptions.create().force(true));
+			m_marmot.createDataSet(Globals.SHIP_GRID_CELLS, plan, StoreDataSetOptions.FORCE);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
