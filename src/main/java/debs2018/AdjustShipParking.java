@@ -47,9 +47,9 @@ public class AdjustShipParking implements Runnable {
 								.applyByGroup(Group.ofKeys("ship_id,departure_port,arrival_port_calc")
 													.orderBy("ts:A"),
 												adjust)
-								.store(Globals.SHIP_TRACKS_TIME_ADJUST)
+								.store(Globals.SHIP_TRACKS_TIME_ADJUST, FORCE)
 								.build();
-			m_marmot.createDataSet(Globals.SHIP_TRACKS_TIME_ADJUST, plan, FORCE);
+			m_marmot.execute(plan);
 		}
 		catch ( Exception e ) {
 			e.printStackTrace(System.err);
