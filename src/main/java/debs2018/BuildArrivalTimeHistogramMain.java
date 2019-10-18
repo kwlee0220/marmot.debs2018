@@ -10,6 +10,7 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.log4j.PropertyConfigurator;
 
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import marmot.RecordScript;
 import marmot.geo.GeoClientUtils;
@@ -84,7 +85,7 @@ public class BuildArrivalTimeHistogramMain implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new BuildArrivalTimeHistogramMain(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

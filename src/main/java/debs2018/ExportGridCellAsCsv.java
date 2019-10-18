@@ -17,6 +17,7 @@ import com.vividsolutions.jts.geom.Envelope;
 import marmot.Column;
 import marmot.DataSet;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.RecordSet;
 import utils.CommandLine;
 import utils.CommandLineParser;
@@ -82,7 +83,7 @@ public class ExportGridCellAsCsv implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new ExportGridCellAsCsv(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

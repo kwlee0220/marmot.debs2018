@@ -9,6 +9,7 @@ import org.apache.log4j.PropertyConfigurator;
 
 import debs2018.Globals;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import marmot.StoreDataSetOptions;
 import marmot.geo.GeoClientUtils;
@@ -67,7 +68,7 @@ public class BuildGradientHistogramMain implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new BuildGradientHistogramMain(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

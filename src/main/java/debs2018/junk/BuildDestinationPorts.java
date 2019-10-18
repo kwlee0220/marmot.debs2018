@@ -14,6 +14,7 @@ import debs2018.Globals;
 import marmot.Column;
 import marmot.DataSet;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import marmot.RecordSet;
 import marmot.StoreDataSetOptions;
@@ -77,7 +78,7 @@ public class BuildDestinationPorts implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new BuildDestinationPorts(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

@@ -20,6 +20,7 @@ import io.vavr.Tuple;
 import io.vavr.control.Try;
 import marmot.DataSet;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import marmot.Record;
 import marmot.RecordSet;
@@ -123,7 +124,7 @@ public class ExportTrajectoriesByPort implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new ExportTrajectoriesByPort(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

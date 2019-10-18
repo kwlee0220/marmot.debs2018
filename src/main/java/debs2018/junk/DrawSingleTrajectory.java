@@ -1,6 +1,5 @@
 package debs2018.junk;
 
-import static marmot.StoreDataSetOptions.*;
 import static marmot.StoreDataSetOptions.FORCE;
 
 import org.apache.hadoop.conf.Configured;
@@ -12,6 +11,7 @@ import debs2018.Globals;
 import marmot.DataSet;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import utils.CommandLine;
 import utils.CommandLineParser;
@@ -63,7 +63,7 @@ public class DrawSingleTrajectory implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new DrawSingleTrajectory(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

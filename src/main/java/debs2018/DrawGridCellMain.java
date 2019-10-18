@@ -1,6 +1,5 @@
 package debs2018;
 
-import static marmot.StoreDataSetOptions.*;
 import static marmot.StoreDataSetOptions.FORCE;
 
 import org.apache.hadoop.conf.Configured;
@@ -10,6 +9,7 @@ import org.apache.log4j.PropertyConfigurator;
 
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import marmot.geo.GeoClientUtils;
 import marmot.optor.geo.SquareGrid;
@@ -62,7 +62,7 @@ public class DrawGridCellMain implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new DrawGridCellMain(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());

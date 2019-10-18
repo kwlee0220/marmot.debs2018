@@ -13,6 +13,7 @@ import debs2018.Globals;
 import marmot.DataSet;
 import marmot.GeometryColumnInfo;
 import marmot.MarmotServer;
+import marmot.MarmotServerBuilder;
 import marmot.Plan;
 import marmot.RecordScript;
 import utils.CommandLine;
@@ -80,7 +81,7 @@ public class DrawSingleShipTravel implements Runnable {
 		else {
 			StopWatch watch = StopWatch.start();
 
-			MarmotServer marmot = MarmotServer.initializeForLocalMR();
+			MarmotServer marmot = new MarmotServerBuilder().forLocalMR().build();
 			new DrawSingleShipTravel(marmot).run();
 			
 			System.out.printf("elapsed time=%s%n", watch.stopAndGetElpasedTimeString());
